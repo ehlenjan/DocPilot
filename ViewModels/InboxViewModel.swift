@@ -5,6 +5,7 @@ import Observation
 final class InboxViewModel {
 
     private let folderStore = InboxFolderStore()
+    private let filenameSuggestionService = FilenameSuggestionService()
 
     var documents: [DocumentRecord] = []
     var errorMessage: String?
@@ -34,8 +35,8 @@ final class InboxViewModel {
             )
 
             documents = files
-                .filter { url in
-                    url.pathExtension.lowercased() == "pdf"
+                .filter {
+                    $0.pathExtension.lowercased() == "pdf"
                 }
                 .sorted {
                     $0.lastPathComponent.localizedStandardCompare(
@@ -50,6 +51,64 @@ final class InboxViewModel {
             documents = []
             errorMessage =
                 "Die Dateien konnten nicht gelesen werden: \(error.localizedDescription)"
+        }
+    }
+
+    func suggestFilename(
+        for document: DocumentRecord
+    ) -> String {
+        filenameSuggestionService.suggestFilename(
+            for: document
+        )
+    }
+
+    func rename(
+        document: DocumentRecord,
+        to newFilename: String
+    ) -> DocumentRecord? {
+        errorMessage = nil
+
+        let cleanedName = newFilename
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanedName.isEmpty else {
+            errorMessage = "Der neue Dateiname darf nicht leer sein."
+            return nil
+        }
+
+        let destinationURL = document.sourceURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(cleanedName)
+            .appendingPathExtension("pdf")
+
+        guard destinationURL != document.sourceURL else {
+            return document
+        }
+
+        guard !FileManager.default.fileExists(
+            atPath: destinationURL.path
+        ) else {
+            errorMessage =
+                "Eine Datei mit diesem Namen existiert bereits."
+            return nil
+        }
+
+        do {
+            try FileManager.default.moveItem(
+                at: document.sourceURL,
+                to: destinationURL
+            )
+
+            loadDocuments()
+
+            return documents.first {
+                $0.sourceURL == destinationURL
+            }
+
+        } catch {
+            errorMessage =
+                "Die Datei konnte nicht umbenannt werden: \(error.localizedDescription)"
+            return nil
         }
     }
 

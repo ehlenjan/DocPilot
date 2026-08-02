@@ -6,6 +6,7 @@ struct InboxView: View {
     @State private var viewModel = InboxViewModel()
     @State private var isChoosingFolder = false
     @State private var selectedDocument: DocumentRecord?
+    @State private var filenameDraft = ""
 
     var body: some View {
         Group {
@@ -27,6 +28,7 @@ struct InboxView: View {
                 }
 
                 selectedDocument = nil
+                filenameDraft = ""
                 viewModel.selectFolder(selectedFolder)
 
             case .failure(let error):
@@ -36,6 +38,12 @@ struct InboxView: View {
         }
         .onAppear {
             viewModel.loadDocuments()
+        }
+        .onChange(of: selectedDocument) { _, newDocument in
+            filenameDraft =
+                newDocument?.sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent ?? ""
         }
     }
 
@@ -47,7 +55,7 @@ struct InboxView: View {
 
             if let errorMessage = viewModel.errorMessage {
                 ContentUnavailableView(
-                    "Ordner konnte nicht gelesen werden",
+                    "Aktion fehlgeschlagen",
                     systemImage: "exclamationmark.triangle",
                     description: Text(errorMessage)
                 )
@@ -91,8 +99,13 @@ struct InboxView: View {
                 viewModel.loadDocuments()
 
                 if let selectedDocument,
-                   !viewModel.documents.contains(selectedDocument) {
+                   let refreshedDocument = viewModel.documents.first(
+                    where: { $0.sourceURL == selectedDocument.sourceURL }
+                   ) {
+                    self.selectedDocument = refreshedDocument
+                } else {
                     self.selectedDocument = nil
+                    filenameDraft = ""
                 }
             } label: {
                 Label("Neu laden", systemImage: "arrow.clockwise")
@@ -118,7 +131,7 @@ struct InboxView: View {
 
             Group {
                 if let selectedDocument {
-                    PDFPreviewView(url: selectedDocument.sourceURL)
+                    documentDetail(for: selectedDocument)
                 } else {
                     ContentUnavailableView(
                         "Kein Dokument ausgewählt",
@@ -129,8 +142,88 @@ struct InboxView: View {
                     )
                 }
             }
-            .frame(minWidth: 500)
+            .frame(minWidth: 620)
         }
+    }
+
+    private func documentDetail(
+        for document: DocumentRecord
+    ) -> some View {
+        HSplitView {
+            PDFPreviewView(url: document.sourceURL)
+                .frame(minWidth: 420)
+
+            Form {
+                Section("Dateiname") {
+                    TextField(
+                        "Neuer Dateiname",
+                        text: $filenameDraft
+                    )
+
+                    Text(".pdf")
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        filenameDraft = viewModel.suggestFilename(
+                            for: document
+                        )
+                    } label: {
+                        Label(
+                            "Vorschlag erzeugen",
+                            systemImage: "sparkles"
+                        )
+                    }
+                }
+
+                Section("Aktueller Name") {
+                    Text(document.originalFilename)
+                        .textSelection(.enabled)
+                }
+
+                Section("Status") {
+                    Label(
+                        "Bereit zum Umbenennen",
+                        systemImage: "pencil"
+                    )
+                    .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Button("Datei umbenennen") {
+                        renameSelectedDocument()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: [.command])
+                    .disabled(
+                        filenameDraft
+                            .trimmingCharacters(
+                                in: .whitespacesAndNewlines
+                            )
+                            .isEmpty
+                    )
+                }
+            }
+            .formStyle(.grouped)
+            .frame(minWidth: 300, idealWidth: 350)
+        }
+    }
+
+    private func renameSelectedDocument() {
+        guard let selectedDocument else {
+            return
+        }
+
+        guard let renamedDocument = viewModel.rename(
+            document: selectedDocument,
+            to: filenameDraft
+        ) else {
+            return
+        }
+
+        self.selectedDocument = renamedDocument
+        filenameDraft = renamedDocument.sourceURL
+            .deletingPathExtension()
+            .lastPathComponent
     }
 
     private var emptyState: some View {
@@ -160,5 +253,5 @@ struct InboxView: View {
 
 #Preview {
     InboxView()
-        .frame(width: 1100, height: 700)
+        .frame(width: 1200, height: 760)
 }

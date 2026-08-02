@@ -15,6 +15,7 @@
 		303B7A36301F722C001D99ED /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 303B7A35301F7216001D99ED /* README.md */; };
 		303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A38301F72DB001D99ED /* InboxViewModel.swift */; };
 		303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3A301F765F001D99ED /* PDFPreviewView.swift */; };
+		303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		303B7A35301F7216001D99ED /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		303B7A38301F72DB001D99ED /* InboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxViewModel.swift; sourceTree = "<group>"; };
 		303B7A3A301F765F001D99ED /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
+		303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilenameSuggestionService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -102,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */,
+				303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -207,6 +210,7 @@
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
+				303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
@@ -343,8 +347,18 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -373,8 +387,18 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
