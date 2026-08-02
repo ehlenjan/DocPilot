@@ -18,6 +18,12 @@
 		303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */; };
 		303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */; };
 		303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A40301F7B7E001D99ED /* PDFTextExtractionService.swift */; };
+		303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A42301F7CF8001D99ED /* AtlasAnalyzer.swift */; };
+		303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A44301F7F11001D99ED /* InboxHeaderView.swift */; };
+		303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A46301F7FDE001D99ED /* DocumentListView.swift */; };
+		303B7A49301F8078001D99ED /* EmptyInboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A48301F8078001D99ED /* EmptyInboxView.swift */; };
+		303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A4A301F80ED001D99ED /* EmptyDocumentListView.swift */; };
+		303B7A4D301F8168001D99ED /* EmptySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A4C301F8168001D99ED /* EmptySelectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +39,12 @@
 		303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilenameSuggestionService.swift; sourceTree = "<group>"; };
 		303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasPanelView.swift; sourceTree = "<group>"; };
 		303B7A40301F7B7E001D99ED /* PDFTextExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTextExtractionService.swift; sourceTree = "<group>"; };
+		303B7A42301F7CF8001D99ED /* AtlasAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasAnalyzer.swift; sourceTree = "<group>"; };
+		303B7A44301F7F11001D99ED /* InboxHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxHeaderView.swift; sourceTree = "<group>"; };
+		303B7A46301F7FDE001D99ED /* DocumentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentListView.swift; sourceTree = "<group>"; };
+		303B7A48301F8078001D99ED /* EmptyInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyInboxView.swift; sourceTree = "<group>"; };
+		303B7A4A301F80ED001D99ED /* EmptyDocumentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyDocumentListView.swift; sourceTree = "<group>"; };
+		303B7A4C301F8168001D99ED /* EmptySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySelectionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -93,6 +105,11 @@
 				303B7A31301F6C68001D99ED /* InboxView.swift */,
 				303B7A3A301F765F001D99ED /* PDFPreviewView.swift */,
 				303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */,
+				303B7A44301F7F11001D99ED /* InboxHeaderView.swift */,
+				303B7A46301F7FDE001D99ED /* DocumentListView.swift */,
+				303B7A48301F8078001D99ED /* EmptyInboxView.swift */,
+				303B7A4A301F80ED001D99ED /* EmptyDocumentListView.swift */,
+				303B7A4C301F8168001D99ED /* EmptySelectionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -118,6 +135,7 @@
 		303B7A2D301F69E3001D99ED /* Brain */ = {
 			isa = PBXGroup;
 			children = (
+				303B7A42301F7CF8001D99ED /* AtlasAnalyzer.swift */,
 			);
 			path = Brain;
 			sourceTree = "<group>";
@@ -215,13 +233,19 @@
 				303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */,
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
 				303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */,
+				303B7A4D301F8168001D99ED /* EmptySelectionView.swift in Sources */,
+				303B7A49301F8078001D99ED /* EmptyInboxView.swift in Sources */,
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
+				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
+				303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */,
 				303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
+				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
+				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

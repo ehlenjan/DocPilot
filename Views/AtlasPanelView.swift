@@ -7,6 +7,7 @@ struct AtlasPanelView: View {
 
     let extractedText: String
     let textExtractionMessage: String?
+    let analysis: AtlasAnalysis?
 
     let onAnalyzeDocument: () -> Void
     let onGenerateSuggestion: () -> Void
@@ -14,37 +15,92 @@ struct AtlasPanelView: View {
 
     var body: some View {
         Form {
-            Section {
-                HStack {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
+            atlasHeader
+            analysisSection
+            filenameSection
+            folderSection
+            reasonsSection
+            currentFileSection
+            actionSection
+        }
+        .formStyle(.grouped)
+        .frame(
+            minWidth: 320,
+            idealWidth: 370
+        )
+    }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Atlas")
-                            .font(.headline)
+    private var atlasHeader: some View {
+        Section {
+            HStack {
+                Image(systemName: "brain.head.profile")
+                    .font(.title2)
 
-                        Text("Dokumentenassistent")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Atlas")
+                        .font(.headline)
 
-            Section("Analyse") {
-                Button(action: onAnalyzeDocument) {
-                    Label(
-                        "Dokument analysieren",
-                        systemImage: "text.viewfinder"
-                    )
-                }
-
-                if let textExtractionMessage {
-                    Text(textExtractionMessage)
+                    Text("Dokumentenassistent")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+        }
+    }
 
-                if !extractedText.isEmpty {
+    private var analysisSection: some View {
+        Section("Analyse") {
+            Button(action: onAnalyzeDocument) {
+                Label(
+                    "Dokument analysieren",
+                    systemImage: "text.viewfinder"
+                )
+            }
+
+            if let textExtractionMessage {
+                Text(textExtractionMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let analysis {
+                LabeledContent(
+                    "Dokumentart",
+                    value: analysis.documentType.rawValue
+                )
+
+                LabeledContent(
+                    "Absender",
+                    value: analysis.sender ?? "Nicht erkannt"
+                )
+
+                LabeledContent(
+                    "Datum",
+                    value: formattedDate(analysis.detectedDate)
+                )
+
+                LabeledContent(
+                    "Sicherheit",
+                    value: confidenceText(analysis.confidence)
+                )
+
+                if !analysis.keywords.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Schlüsselwörter")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(analysis.keywords.joined(separator: ", "))
+                            .textSelection(.enabled)
+                    }
+                }
+            } else {
+                Text("Das Dokument wurde noch nicht analysiert.")
+                    .foregroundStyle(.secondary)
+            }
+
+            if !extractedText.isEmpty {
+                DisclosureGroup("Erkannten Text anzeigen") {
                     ScrollView {
                         Text(extractedText)
                             .font(.caption)
@@ -57,95 +113,86 @@ struct AtlasPanelView: View {
                     .frame(minHeight: 120, maxHeight: 220)
                 }
             }
+        }
+    }
 
-            Section("Dateiname") {
-                TextField(
-                    "Neuer Dateiname",
-                    text: $filenameDraft
-                )
+    private var filenameSection: some View {
+        Section("Dateiname") {
+            TextField(
+                "Neuer Dateiname",
+                text: $filenameDraft
+            )
 
-                Text(".pdf")
-                    .foregroundStyle(.secondary)
-
-                Button(action: onGenerateSuggestion) {
-                    Label(
-                        "Vorschlag erzeugen",
-                        systemImage: "sparkles"
-                    )
-                }
-            }
-
-            Section("Zielordner") {
-                Label(
-                    "Noch kein Vorschlag",
-                    systemImage: "folder.badge.questionmark"
-                )
+            Text(".pdf")
                 .foregroundStyle(.secondary)
 
-                Button {
-                    // Wird später ergänzt.
-                } label: {
-                    Label(
-                        "Ordner auswählen",
-                        systemImage: "folder"
-                    )
-                }
-                .disabled(true)
-            }
-
-            Section("Dokumentart") {
-                LabeledContent(
-                    "Erkannt",
-                    value: document.documentType.rawValue
+            Button(action: onGenerateSuggestion) {
+                Label(
+                    "Vorschlag erzeugen",
+                    systemImage: "sparkles"
                 )
-
-                LabeledContent(
-                    "Sicherheit",
-                    value: confidenceText
-                )
-            }
-
-            Section("Warum?") {
-                if document.reasons.isEmpty {
-                    Text(
-                        "Atlas hat dieses Dokument noch nicht klassifiziert."
-                    )
-                    .foregroundStyle(.secondary)
-                } else {
-                    ForEach(document.reasons, id: \.self) { reason in
-                        Label(
-                            reason,
-                            systemImage: "checkmark.circle"
-                        )
-                    }
-                }
-            }
-
-            Section("Aktuelle Datei") {
-                Text(document.originalFilename)
-                    .textSelection(.enabled)
-            }
-
-            Section {
-                Button(action: onRename) {
-                    Label(
-                        "Datei umbenennen",
-                        systemImage: "checkmark.circle.fill"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(
-                    .return,
-                    modifiers: [.command]
-                )
-                .disabled(cleanFilename.isEmpty)
             }
         }
-        .formStyle(.grouped)
-        .frame(
-            minWidth: 320,
-            idealWidth: 370
-        )
+    }
+
+    private var folderSection: some View {
+        Section("Zielordner") {
+            Label(
+                "Noch kein Vorschlag",
+                systemImage: "folder.badge.questionmark"
+            )
+            .foregroundStyle(.secondary)
+
+            Button {
+                // Wird später ergänzt.
+            } label: {
+                Label(
+                    "Ordner auswählen",
+                    systemImage: "folder"
+                )
+            }
+            .disabled(true)
+        }
+    }
+
+    private var reasonsSection: some View {
+        Section("Warum?") {
+            if let analysis, !analysis.reasons.isEmpty {
+                ForEach(analysis.reasons, id: \.self) { reason in
+                    Label(
+                        reason,
+                        systemImage: "checkmark.circle"
+                    )
+                }
+            } else {
+                Text("Noch keine Begründungen vorhanden.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var currentFileSection: some View {
+        Section("Aktuelle Datei") {
+            Text(document.originalFilename)
+                .textSelection(.enabled)
+        }
+    }
+
+    private var actionSection: some View {
+        Section {
+            Button(action: onRename) {
+                Label(
+                    "Datei umbenennen",
+                    systemImage: "checkmark.circle.fill"
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(
+                .return,
+                modifiers: [.command]
+            )
+            .disabled(cleanFilename.isEmpty)
+        }
     }
 
     private var cleanFilename: String {
@@ -154,14 +201,42 @@ struct AtlasPanelView: View {
         )
     }
 
-    private var confidenceText: String {
-        let percentage = Int(document.confidence * 100)
-        return "\(percentage) %"
+    private func formattedDate(_ date: Date?) -> String {
+        guard let date else {
+            return "Nicht erkannt"
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateStyle = .medium
+
+        return formatter.string(from: date)
+    }
+
+    private func confidenceText(_ confidence: Double) -> String {
+        "\(Int(confidence * 100)) %"
     }
 }
 
 #Preview {
-    @Previewable @State var filename = "2026-08-02 Dokument"
+    @Previewable @State var filename =
+        "2026-08-02 Rechnung RAISA"
+
+    let previewAnalysis = AtlasAnalysis(
+        documentType: .invoice,
+        detectedDate: Date(),
+        sender: "RAISA",
+        keywords: [
+            "Rechnung",
+            "Futtermittel"
+        ],
+        confidence: 0.85,
+        reasons: [
+            "Dokumentart Rechnung erkannt",
+            "Absender RAISA erkannt",
+            "Datum erkannt"
+        ]
+    )
 
     AtlasPanelView(
         document: DocumentRecord(
@@ -171,13 +246,14 @@ struct AtlasPanelView: View {
         ),
         filenameDraft: $filename,
         extractedText: "Beispieltext aus dem PDF",
-        textExtractionMessage: "26 Zeichen aus dem PDF gelesen.",
+        textExtractionMessage: "28 Zeichen aus dem PDF gelesen.",
+        analysis: previewAnalysis,
         onAnalyzeDocument: {},
         onGenerateSuggestion: {},
         onRename: {}
     )
     .frame(
         width: 390,
-        height: 760
+        height: 800
     )
 }

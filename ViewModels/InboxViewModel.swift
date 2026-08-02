@@ -7,12 +7,15 @@ final class InboxViewModel {
     private let folderStore = InboxFolderStore()
     private let filenameSuggestionService = FilenameSuggestionService()
     private let pdfTextExtractionService = PDFTextExtractionService()
+    private let atlasAnalyzer = AtlasAnalyzer()
 
     var documents: [DocumentRecord] = []
     var errorMessage: String?
 
     var extractedText: String = ""
     var textExtractionMessage: String?
+
+    var analysis: AtlasAnalysis?
 
     var folderURL: URL? {
         folderStore.folderURL
@@ -58,33 +61,45 @@ final class InboxViewModel {
         }
     }
 
-    func extractText(from document: DocumentRecord) {
+    func analyze(document: DocumentRecord) {
         extractedText = ""
         textExtractionMessage = nil
+        analysis = nil
 
         do {
-            extractedText = try pdfTextExtractionService.extractText(
+            let text = try pdfTextExtractionService.extractText(
                 from: document.sourceURL
             )
 
+            extractedText = text
             textExtractionMessage =
-                "\(extractedText.count) Zeichen aus dem PDF gelesen."
+                "\(text.count) Zeichen aus dem PDF gelesen."
+
+            analysis = atlasAnalyzer.analyze(text: text)
 
         } catch {
             textExtractionMessage = error.localizedDescription
         }
     }
 
-    func clearExtractedText() {
+    func clearAnalysis() {
         extractedText = ""
         textExtractionMessage = nil
+        analysis = nil
     }
 
     func suggestFilename(
         for document: DocumentRecord
     ) -> String {
-        filenameSuggestionService.suggestFilename(
-            for: document
+        guard let analysis else {
+            return filenameSuggestionService.suggestFilename(
+                for: document
+            )
+        }
+
+        return buildFilenameSuggestion(
+            from: analysis,
+            fallbackDocument: document
         )
     }
 
@@ -141,8 +156,36 @@ final class InboxViewModel {
     func removeFolder() {
         folderStore.removeFolder()
         documents = []
-        extractedText = ""
-        textExtractionMessage = nil
+        clearAnalysis()
         errorMessage = nil
+    }
+
+    private func buildFilenameSuggestion(
+        from analysis: AtlasAnalysis,
+        fallbackDocument: DocumentRecord
+    ) -> String {
+        var parts: [String] = []
+
+        if let date = analysis.detectedDate {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            parts.append(formatter.string(from: date))
+        }
+
+        if analysis.documentType != .unknown {
+            parts.append(analysis.documentType.rawValue)
+        }
+
+        if let sender = analysis.sender {
+            parts.append(sender)
+        }
+
+        if parts.isEmpty {
+            return filenameSuggestionService.suggestFilename(
+                for: fallbackDocument
+            )
+        }
+
+        return parts.joined(separator: " ")
     }
 }
