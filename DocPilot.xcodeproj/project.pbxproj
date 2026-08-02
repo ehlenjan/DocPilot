@@ -6,8 +6,21 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A1E301F59E8001D99ED /* DocPilotApp.swift */; };
+		303B7A21301F59E8001D99ED /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A20301F59E8001D99ED /* ContentView.swift */; };
+		303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A2F301F6BD5001D99ED /* DocumentRecord.swift */; };
+		303B7A32301F6C68001D99ED /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A31301F6C68001D99ED /* InboxView.swift */; };
+		303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		303B7A1B301F59E8001D99ED /* DocPilot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DocPilot.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		303B7A1E301F59E8001D99ED /* DocPilotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocPilotApp.swift; sourceTree = "<group>"; };
+		303B7A20301F59E8001D99ED /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		303B7A2F301F6BD5001D99ED /* DocumentRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentRecord.swift; sourceTree = "<group>"; };
+		303B7A31301F6C68001D99ED /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxFolderStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +45,12 @@
 		303B7A12301F59E8001D99ED = {
 			isa = PBXGroup;
 			children = (
+				303B7A29301F69A8001D99ED /* App */,
+				303B7A2A301F69BD001D99ED /* Views */,
+				303B7A2B301F69C8001D99ED /* Models */,
+				303B7A2C301F69D8001D99ED /* Services */,
+				303B7A2D301F69E3001D99ED /* Brain */,
+				303B7A2E301F69EF001D99ED /* Resources */,
 				303B7A1D301F59E8001D99ED /* DocPilot */,
 				303B7A1C301F59E8001D99ED /* Products */,
 			);
@@ -43,6 +62,53 @@
 				303B7A1B301F59E8001D99ED /* DocPilot.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		303B7A29301F69A8001D99ED /* App */ = {
+			isa = PBXGroup;
+			children = (
+				303B7A1E301F59E8001D99ED /* DocPilotApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		303B7A2A301F69BD001D99ED /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				303B7A20301F59E8001D99ED /* ContentView.swift */,
+				303B7A31301F6C68001D99ED /* InboxView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		303B7A2B301F69C8001D99ED /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				303B7A2F301F6BD5001D99ED /* DocumentRecord.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		303B7A2C301F69D8001D99ED /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		303B7A2D301F69E3001D99ED /* Brain */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Brain;
+			sourceTree = "<group>";
+		};
+		303B7A2E301F69EF001D99ED /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,6 +185,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
+				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
+				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
+				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
+				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
