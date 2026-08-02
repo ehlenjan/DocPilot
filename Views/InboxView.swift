@@ -74,6 +74,7 @@ struct InboxView: View {
         HSplitView {
             DocumentListView(
                 documents: viewModel.documents,
+                selectedAnalysis: viewModel.analysis,
                 selection: $selectedDocument
             )
 

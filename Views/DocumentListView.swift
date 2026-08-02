@@ -3,6 +3,7 @@ import SwiftUI
 struct DocumentListView: View {
 
     let documents: [DocumentRecord]
+    let selectedAnalysis: AtlasAnalysis?
 
     @Binding var selection: DocumentRecord?
 
@@ -11,9 +12,9 @@ struct DocumentListView: View {
             documents,
             selection: $selection
         ) { document in
-            Label(
-                document.originalFilename,
-                systemImage: "doc.richtext"
+            DocumentRowView(
+                document: document,
+                analysis: analysis(for: document)
             )
             .tag(document)
         }
@@ -21,6 +22,18 @@ struct DocumentListView: View {
             minWidth: 240,
             idealWidth: 300
         )
+    }
+
+    private func analysis(
+        for document: DocumentRecord
+    ) -> AtlasAnalysis? {
+        guard
+            document.id == selection?.id
+        else {
+            return nil
+        }
+
+        return selectedAnalysis
     }
 }
 
@@ -37,20 +50,16 @@ struct DocumentListView: View {
             sourceURL: URL(
                 fileURLWithPath: "/tmp/rechnung.pdf"
             )
-        ),
-        DocumentRecord(
-            sourceURL: URL(
-                fileURLWithPath: "/tmp/lieferschein.pdf"
-            )
         )
     ]
 
     DocumentListView(
         documents: documents,
+        selectedAnalysis: nil,
         selection: $selection
     )
     .frame(
-        width: 320,
+        width: 340,
         height: 500
     )
 }
