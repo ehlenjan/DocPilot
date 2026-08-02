@@ -10,15 +10,39 @@ final class InboxViewModel {
     private let atlasAnalyzer = AtlasAnalyzer()
     private let autoAnalysisService = AutoAnalysisService()
 
+    private let folderSuggestionEngine: FolderSuggestionEngine = {
+        let knowledgeBase: KnowledgeBase
+
+        do {
+            knowledgeBase = try KnowledgeBase.load()
+        } catch {
+            print(
+                "KnowledgeBase konnte für Ordnervorschläge nicht geladen werden: \(error.localizedDescription)"
+            )
+
+            knowledgeBase = KnowledgeBase(
+                companies: [],
+                documentTypes: [],
+                folderRules: []
+            )
+        }
+
+        return FolderSuggestionEngine(
+            knowledgeBase: knowledgeBase
+        )
+    }()
+
     var documents: [DocumentRecord] = []
     var errorMessage: String?
 
-    var extractedText: String = ""
+    var extractedText = ""
     var textExtractionMessage: String?
 
     var analysis: AtlasAnalysis?
+    var folderSuggestion: FolderSuggestion?
 
-    private var analysesByDocumentID: [UUID: AtlasAnalysis] = [:]
+    private var analysesByURL: [URL: AtlasAnalysis] = [:]
+    private var folderSuggestionsByURL: [URL: FolderSuggestion] = [:]
 
     var folderURL: URL? {
         folderStore.folderURL
@@ -57,11 +81,18 @@ final class InboxViewModel {
                     DocumentRecord(sourceURL: $0)
                 }
 
-            analysesByDocumentID = analysesByDocumentID.filter { entry in
-                documents.contains { document in
-                    document.id == entry.key
-                }
+            let availableURLs = Set(
+                documents.map(\.sourceURL)
+            )
+
+            analysesByURL = analysesByURL.filter {
+                availableURLs.contains($0.key)
             }
+
+            folderSuggestionsByURL =
+                folderSuggestionsByURL.filter {
+                    availableURLs.contains($0.key)
+                }
 
             autoAnalyzeDocuments()
 
@@ -79,12 +110,12 @@ final class InboxViewModel {
                 self.analysis(for: document) != nil
             },
             analyze: { document in
-                self.analyzeInBackgroundStyle(document: document)
+                self.analyzeSilently(document: document)
             }
         )
     }
 
-    private func analyzeInBackgroundStyle(
+    private func analyzeSilently(
         document: DocumentRecord
     ) {
         do {
@@ -92,12 +123,24 @@ final class InboxViewModel {
                 from: document.sourceURL
             )
 
-            let newAnalysis = atlasAnalyzer.analyze(text: text)
+            let newAnalysis = atlasAnalyzer.analyze(
+                text: text
+            )
 
-            analysesByDocumentID[document.id] = newAnalysis
+            let newFolderSuggestion =
+                folderSuggestionEngine.suggestFolder(
+                    for: newAnalysis,
+                    text: text
+                )
+
+            analysesByURL[document.sourceURL] =
+                newAnalysis
+
+            folderSuggestionsByURL[document.sourceURL] =
+                newFolderSuggestion
 
         } catch {
-            // Reine Scans ohne eingebetteten Text werden später per OCR analysiert.
+            // Reine Bildscans werden später per OCR verarbeitet.
         }
     }
 
@@ -105,6 +148,7 @@ final class InboxViewModel {
         extractedText = ""
         textExtractionMessage = nil
         analysis = nil
+        folderSuggestion = nil
 
         do {
             let text = try pdfTextExtractionService.extractText(
@@ -115,33 +159,56 @@ final class InboxViewModel {
             textExtractionMessage =
                 "\(text.count) Zeichen aus dem PDF gelesen."
 
-            let newAnalysis = atlasAnalyzer.analyze(text: text)
+            let newAnalysis = atlasAnalyzer.analyze(
+                text: text
+            )
+
+            let newFolderSuggestion =
+                folderSuggestionEngine.suggestFolder(
+                    for: newAnalysis,
+                    text: text
+                )
 
             analysis = newAnalysis
-            analysesByDocumentID[document.id] = newAnalysis
+            folderSuggestion = newFolderSuggestion
+
+            analysesByURL[document.sourceURL] =
+                newAnalysis
+
+            folderSuggestionsByURL[document.sourceURL] =
+                newFolderSuggestion
 
         } catch {
-            textExtractionMessage = error.localizedDescription
+            textExtractionMessage =
+                error.localizedDescription
         }
     }
 
     func analysis(
         for document: DocumentRecord
     ) -> AtlasAnalysis? {
-        analysesByDocumentID[document.id]
+        analysesByURL[document.sourceURL]
+    }
+
+    func folderSuggestion(
+        for document: DocumentRecord
+    ) -> FolderSuggestion? {
+        folderSuggestionsByURL[document.sourceURL]
     }
 
     func selectAnalysis(
         for document: DocumentRecord?
     ) {
         guard let document else {
-            analysis = nil
-            extractedText = ""
-            textExtractionMessage = nil
+            clearAnalysis()
             return
         }
 
-        analysis = analysesByDocumentID[document.id]
+        analysis = analysesByURL[document.sourceURL]
+
+        folderSuggestion =
+            folderSuggestionsByURL[document.sourceURL]
+
         extractedText = ""
 
         textExtractionMessage = analysis == nil
@@ -153,13 +220,14 @@ final class InboxViewModel {
         extractedText = ""
         textExtractionMessage = nil
         analysis = nil
+        folderSuggestion = nil
     }
 
     func suggestFilename(
         for document: DocumentRecord
     ) -> String {
         let documentAnalysis =
-            analysesByDocumentID[document.id] ?? analysis
+            analysesByURL[document.sourceURL] ?? analysis
 
         guard let documentAnalysis else {
             return filenameSuggestionService.suggestFilename(
@@ -180,7 +248,9 @@ final class InboxViewModel {
         errorMessage = nil
 
         let cleanedName = newFilename
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
 
         guard !cleanedName.isEmpty else {
             errorMessage =
@@ -207,31 +277,39 @@ final class InboxViewModel {
 
         do {
             let previousAnalysis =
-                analysesByDocumentID[document.id]
+                analysesByURL[document.sourceURL]
+
+            let previousFolderSuggestion =
+                folderSuggestionsByURL[document.sourceURL]
 
             try FileManager.default.moveItem(
                 at: document.sourceURL,
                 to: destinationURL
             )
 
-            loadDocuments()
+            analysesByURL.removeValue(
+                forKey: document.sourceURL
+            )
 
-            guard let renamedDocument = documents.first(
-                where: { $0.sourceURL == destinationURL }
-            ) else {
-                return nil
-            }
+            folderSuggestionsByURL.removeValue(
+                forKey: document.sourceURL
+            )
 
             if let previousAnalysis {
-                analysesByDocumentID[renamedDocument.id] =
+                analysesByURL[destinationURL] =
                     previousAnalysis
             }
 
-            analysesByDocumentID.removeValue(
-                forKey: document.id
-            )
+            if let previousFolderSuggestion {
+                folderSuggestionsByURL[destinationURL] =
+                    previousFolderSuggestion
+            }
 
-            return renamedDocument
+            loadDocuments()
+
+            return documents.first {
+                $0.sourceURL == destinationURL
+            }
 
         } catch {
             errorMessage =
@@ -243,7 +321,8 @@ final class InboxViewModel {
     func removeFolder() {
         folderStore.removeFolder()
         documents = []
-        analysesByDocumentID = [:]
+        analysesByURL = [:]
+        folderSuggestionsByURL = [:]
         clearAnalysis()
         errorMessage = nil
     }
@@ -257,6 +336,7 @@ final class InboxViewModel {
         if let date = analysis.detectedDate {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
+
             parts.append(
                 formatter.string(from: date)
             )

@@ -32,17 +32,23 @@ struct InboxView: View {
             viewModel.loadDocuments()
         }
         .onChange(of: selectedDocument) { _, newDocument in
-            filenameDraft = newDocument?
-                .sourceURL
-                .deletingPathExtension()
-                .lastPathComponent ?? ""
 
-            viewModel.selectAnalysis(for: newDocument)
+            filenameDraft =
+                newDocument?
+                    .sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent ?? ""
+
+            viewModel.selectAnalysis(
+                for: newDocument
+            )
         }
     }
 
     private func inboxContent(folderURL: URL) -> some View {
+
         VStack(spacing: 0) {
+
             InboxHeaderView(
                 folderURL: folderURL,
                 documentCount: viewModel.documents.count,
@@ -57,21 +63,29 @@ struct InboxView: View {
             Divider()
 
             if let errorMessage = viewModel.errorMessage {
+
                 ContentUnavailableView(
                     "Aktion fehlgeschlagen",
                     systemImage: "exclamationmark.triangle",
                     description: Text(errorMessage)
                 )
+
             } else if viewModel.documents.isEmpty {
+
                 EmptyDocumentListView()
+
             } else {
+
                 documentBrowser
+
             }
         }
     }
 
     private var documentBrowser: some View {
+
         HSplitView {
+
             DocumentListView(
                 documents: viewModel.documents,
                 analysisForDocument: { document in
@@ -88,112 +102,155 @@ struct InboxView: View {
 
     @ViewBuilder
     private var documentPreview: some View {
+
         if let document = selectedDocument {
-            PDFPreviewView(url: document.sourceURL)
-                .frame(minWidth: 420)
+
+            PDFPreviewView(
+                url: document.sourceURL
+            )
+            .frame(minWidth: 420)
+
         } else {
+
             EmptySelectionView(
                 title: "Kein Dokument ausgewählt",
                 systemImage: "doc.text.magnifyingglass",
                 description: "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
             )
             .frame(minWidth: 420)
+
         }
     }
 
     @ViewBuilder
     private var atlasPanel: some View {
+
         if let document = selectedDocument {
+
             AtlasPanelView(
                 document: document,
                 filenameDraft: $filenameDraft,
                 extractedText: viewModel.extractedText,
                 textExtractionMessage: viewModel.textExtractionMessage,
                 analysis: viewModel.analysis,
+                folderSuggestion: viewModel.folderSuggestion,
                 onAnalyzeDocument: {
                     viewModel.analyze(document: document)
                 },
                 onGenerateSuggestion: {
-                    filenameDraft = viewModel.suggestFilename(
-                        for: document
-                    )
+                    filenameDraft =
+                        viewModel.suggestFilename(
+                            for: document
+                        )
                 },
                 onRename: {
                     renameSelectedDocument()
                 }
             )
-            .frame(minWidth: 320, idealWidth: 370)
+            .frame(
+                minWidth: 320,
+                idealWidth: 370
+            )
+
         } else {
+
             EmptySelectionView(
                 title: "Atlas wartet",
                 systemImage: "brain.head.profile",
                 description: "Wähle ein Dokument aus, damit Atlas es analysieren kann."
             )
-            .frame(minWidth: 320, idealWidth: 370)
+            .frame(
+                minWidth: 320,
+                idealWidth: 370
+            )
+
         }
     }
 
     private func handleFolderSelection(
         _ result: Result<[URL], Error>
     ) {
+
         switch result {
+
         case .success(let urls):
+
             guard let selectedFolder = urls.first else {
                 return
             }
 
             selectedDocument = nil
             filenameDraft = ""
+
             viewModel.clearAnalysis()
             viewModel.selectFolder(selectedFolder)
 
         case .failure(let error):
+
             viewModel.errorMessage =
                 "Ordner konnte nicht ausgewählt werden: \(error.localizedDescription)"
         }
     }
 
     private func reloadDocuments() {
-        let previousURL = selectedDocument?.sourceURL
+
+        let previousURL =
+            selectedDocument?.sourceURL
 
         viewModel.loadDocuments()
-        viewModel.clearAnalysis()
 
         if let previousURL,
-           let refreshedDocument = viewModel.documents.first(
-               where: { $0.sourceURL == previousURL }
-           ) {
+           let refreshedDocument =
+            viewModel.documents.first(
+                where: {
+                    $0.sourceURL == previousURL
+                }
+            ) {
+
             selectedDocument = refreshedDocument
-            viewModel.selectAnalysis(for: refreshedDocument)
+
+            viewModel.selectAnalysis(
+                for: refreshedDocument
+            )
+
         } else {
+
             selectedDocument = nil
             filenameDraft = ""
+
+            viewModel.clearAnalysis()
         }
     }
 
     private func renameSelectedDocument() {
+
         guard let document = selectedDocument else {
             return
         }
 
-        guard let renamedDocument = viewModel.rename(
-            document: document,
-            to: filenameDraft
-        ) else {
+        guard let renamedDocument =
+            viewModel.rename(
+                document: document,
+                to: filenameDraft
+            )
+        else {
             return
         }
 
         selectedDocument = renamedDocument
 
-        filenameDraft = renamedDocument.sourceURL
-            .deletingPathExtension()
-            .lastPathComponent
+        filenameDraft =
+            renamedDocument.sourceURL
+                .deletingPathExtension()
+                .lastPathComponent
 
-        viewModel.selectAnalysis(for: renamedDocument)
+        viewModel.selectAnalysis(
+            for: renamedDocument
+        )
     }
 }
 
 #Preview {
     InboxView()
-        .frame(width: 1300, height: 760)
+        .frame(width: 1350, height: 760)
 }

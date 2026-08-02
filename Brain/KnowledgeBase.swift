@@ -4,6 +4,7 @@ struct KnowledgeBase: Decodable {
 
     let companies: [CompanyRule]
     let documentTypes: [DocumentTypeRule]
+    let folderRules: [FolderRule]
 
     static func load() throws -> KnowledgeBase {
         guard let url = Bundle.main.url(
@@ -17,6 +18,7 @@ struct KnowledgeBase: Decodable {
             let data = try Data(contentsOf: url)
 
             let decoder = JSONDecoder()
+
             return try decoder.decode(
                 KnowledgeBase.self,
                 from: data
@@ -84,6 +86,99 @@ struct DocumentTypeRule: Decodable, Identifiable {
 
         default:
             return .unknown
+        }
+    }
+}
+
+struct FolderRule: Decodable, Identifiable {
+
+    let name: String
+    let area: String
+    let folder: String
+    let documentTypes: [String]
+    let companies: [String]
+    let keywords: [String]
+
+    var id: String {
+        name
+    }
+
+    var archiveArea: ArchiveArea? {
+        ArchiveArea(rawValue: area)
+    }
+
+    func matchesDocumentType(
+        _ documentType: DocumentType
+    ) -> Bool {
+        guard !documentTypes.isEmpty else {
+            return false
+        }
+
+        return documentTypes.contains(
+            documentTypeIdentifier(documentType)
+        )
+    }
+
+    func matchesCompany(
+        _ company: String?
+    ) -> Bool {
+        guard
+            let company,
+            !companies.isEmpty
+        else {
+            return false
+        }
+
+        return companies.contains {
+            $0.caseInsensitiveCompare(company) == .orderedSame
+        }
+    }
+
+    func matchingKeywords(
+        in text: String
+    ) -> [String] {
+        let normalizedText = text.lowercased()
+
+        return keywords.filter { keyword in
+            normalizedText.contains(
+                keyword.lowercased()
+            )
+        }
+    }
+
+    private func documentTypeIdentifier(
+        _ documentType: DocumentType
+    ) -> String {
+        switch documentType {
+        case .invoice:
+            return "invoice"
+
+        case .creditNote:
+            return "creditNote"
+
+        case .deliveryNote:
+            return "deliveryNote"
+
+        case .slaughterReport:
+            return "slaughterReport"
+
+        case .weighingReport:
+            return "weighingReport"
+
+        case .form:
+            return "form"
+
+        case .contract:
+            return "contract"
+
+        case .letter:
+            return "letter"
+
+        case .plan:
+            return "plan"
+
+        case .unknown:
+            return "unknown"
         }
     }
 }

@@ -3,11 +3,14 @@ import SwiftUI
 struct AtlasPanelView: View {
 
     let document: DocumentRecord
+
     @Binding var filenameDraft: String
 
     let extractedText: String
     let textExtractionMessage: String?
+
     let analysis: AtlasAnalysis?
+    let folderSuggestion: FolderSuggestion?
 
     let onAnalyzeDocument: () -> Void
     let onGenerateSuggestion: () -> Void
@@ -90,8 +93,12 @@ struct AtlasPanelView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Text(analysis.keywords.joined(separator: ", "))
-                            .textSelection(.enabled)
+                        Text(
+                            analysis.keywords.joined(
+                                separator: ", "
+                            )
+                        )
+                        .textSelection(.enabled)
                     }
                 }
             } else {
@@ -110,7 +117,10 @@ struct AtlasPanelView: View {
                                 alignment: .leading
                             )
                     }
-                    .frame(minHeight: 120, maxHeight: 220)
+                    .frame(
+                        minHeight: 120,
+                        maxHeight: 220
+                    )
                 }
             }
         }
@@ -137,28 +147,52 @@ struct AtlasPanelView: View {
 
     private var folderSection: some View {
         Section("Zielordner") {
-            Label(
-                "Noch kein Vorschlag",
-                systemImage: "folder.badge.questionmark"
-            )
-            .foregroundStyle(.secondary)
+            if let folderSuggestion {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "folder.fill")
 
-            Button {
-                // Wird später ergänzt.
-            } label: {
+                        Text(folderSuggestion.displayPath)
+                            .font(.headline)
+
+                        Spacer()
+
+                        Text(
+                            "\(Int(folderSuggestion.confidence * 100)) %"
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(
+                        folderSuggestion.reasons,
+                        id: \.self
+                    ) { reason in
+                        Label(
+                            reason,
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .font(.caption)
+                    }
+                }
+            } else {
                 Label(
-                    "Ordner auswählen",
-                    systemImage: "folder"
+                    "Noch kein Vorschlag",
+                    systemImage: "folder.badge.questionmark"
                 )
+                .foregroundStyle(.secondary)
             }
-            .disabled(true)
         }
     }
 
     private var reasonsSection: some View {
         Section("Warum?") {
-            if let analysis, !analysis.reasons.isEmpty {
-                ForEach(analysis.reasons, id: \.self) { reason in
+            if let analysis,
+               !analysis.reasons.isEmpty {
+
+                ForEach(
+                    analysis.reasons,
+                    id: \.self
+                ) { reason in
                     Label(
                         reason,
                         systemImage: "checkmark.circle"
@@ -201,19 +235,27 @@ struct AtlasPanelView: View {
         )
     }
 
-    private func formattedDate(_ date: Date?) -> String {
+    private func formattedDate(
+        _ date: Date?
+    ) -> String {
         guard let date else {
             return "Nicht erkannt"
         }
 
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "de_DE")
+        formatter.locale = Locale(
+            identifier: "de_DE"
+        )
         formatter.dateStyle = .medium
 
-        return formatter.string(from: date)
+        return formatter.string(
+            from: date
+        )
     }
 
-    private func confidenceText(_ confidence: Double) -> String {
+    private func confidenceText(
+        _ confidence: Double
+    ) -> String {
         "\(Int(confidence * 100)) %"
     }
 }
@@ -238,6 +280,18 @@ struct AtlasPanelView: View {
         ]
     )
 
+    let previewFolderSuggestion = FolderSuggestion(
+        ruleName: "EHA Lieferscheine",
+        area: .ehaKG,
+        folder: "Lieferscheine",
+        confidence: 0.87,
+        reasons: [
+            "Dokumentart Lieferschein passt",
+            "Absender RAISA passt",
+            "Schlüsselwörter: Futtermittel, VzF"
+        ]
+    )
+
     AtlasPanelView(
         document: DocumentRecord(
             sourceURL: URL(
@@ -246,8 +300,10 @@ struct AtlasPanelView: View {
         ),
         filenameDraft: $filename,
         extractedText: "Beispieltext aus dem PDF",
-        textExtractionMessage: "28 Zeichen aus dem PDF gelesen.",
+        textExtractionMessage:
+            "28 Zeichen aus dem PDF gelesen.",
         analysis: previewAnalysis,
+        folderSuggestion: previewFolderSuggestion,
         onAnalyzeDocument: {},
         onGenerateSuggestion: {},
         onRename: {}

@@ -28,6 +28,11 @@
 		303B7A51301FAB03001D99ED /* AutoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A50301FAB03001D99ED /* AutoAnalysisService.swift */; };
 		303B7A53301FAC75001D99ED /* knowledge.json in Resources */ = {isa = PBXBuildFile; fileRef = 303B7A52301FAC32001D99ED /* knowledge.json */; };
 		303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A54301FACA8001D99ED /* KnowledgeBase.swift */; };
+		303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A56301FD485001D99ED /* CompanyRecognizer.swift */; };
+		303B7A59301FD4FE001D99ED /* DocumentClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A58301FD4FE001D99ED /* DocumentClassifier.swift */; };
+		303B7A5B301FD530001D99ED /* DateRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A5A301FD530001D99ED /* DateRecognizer.swift */; };
+		303B7A5D301FD574001D99ED /* KeywordRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A5C301FD574001D99ED /* KeywordRecognizer.swift */; };
+		303B7A5F301FD7D4001D99ED /* FolderSuggestionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A5E301FD7D4001D99ED /* FolderSuggestionEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +58,11 @@
 		303B7A50301FAB03001D99ED /* AutoAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnalysisService.swift; sourceTree = "<group>"; };
 		303B7A52301FAC32001D99ED /* knowledge.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = knowledge.json; sourceTree = "<group>"; };
 		303B7A54301FACA8001D99ED /* KnowledgeBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeBase.swift; sourceTree = "<group>"; };
+		303B7A56301FD485001D99ED /* CompanyRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanyRecognizer.swift; sourceTree = "<group>"; };
+		303B7A58301FD4FE001D99ED /* DocumentClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentClassifier.swift; sourceTree = "<group>"; };
+		303B7A5A301FD530001D99ED /* DateRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateRecognizer.swift; sourceTree = "<group>"; };
+		303B7A5C301FD574001D99ED /* KeywordRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordRecognizer.swift; sourceTree = "<group>"; };
+		303B7A5E301FD7D4001D99ED /* FolderSuggestionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSuggestionEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -147,6 +157,11 @@
 			children = (
 				303B7A42301F7CF8001D99ED /* AtlasAnalyzer.swift */,
 				303B7A54301FACA8001D99ED /* KnowledgeBase.swift */,
+				303B7A56301FD485001D99ED /* CompanyRecognizer.swift */,
+				303B7A58301FD4FE001D99ED /* DocumentClassifier.swift */,
+				303B7A5A301FD530001D99ED /* DateRecognizer.swift */,
+				303B7A5C301FD574001D99ED /* KeywordRecognizer.swift */,
+				303B7A5E301FD7D4001D99ED /* FolderSuggestionEngine.swift */,
 			);
 			path = Brain;
 			sourceTree = "<group>";
@@ -244,6 +259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */,
+				303B7A5F301FD7D4001D99ED /* FolderSuggestionEngine.swift in Sources */,
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
 				303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */,
 				303B7A4D301F8168001D99ED /* EmptySelectionView.swift in Sources */,
@@ -252,14 +268,18 @@
 				303B7A51301FAB03001D99ED /* AutoAnalysisService.swift in Sources */,
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
+				303B7A5B301FD530001D99ED /* DateRecognizer.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
 				303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */,
+				303B7A5D301FD574001D99ED /* KeywordRecognizer.swift in Sources */,
 				303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */,
+				303B7A59301FD4FE001D99ED /* DocumentClassifier.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
 				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
+				303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */,
 				303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */,
 				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,
 			);

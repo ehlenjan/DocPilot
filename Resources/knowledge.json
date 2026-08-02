@@ -50,6 +50,7 @@
       ]
     }
   ],
+
   "documentTypes": [
     {
       "type": "invoice",
@@ -109,6 +110,108 @@
         "grobplanung",
         "lageplan",
         "planung"
+      ]
+    }
+  ],
+
+  "folderRules": [
+    {
+      "name": "EHA Lieferscheine",
+      "area": "EHA KG",
+      "folder": "Lieferscheine",
+      "documentTypes": [
+        "deliveryNote"
+      ],
+      "companies": [
+        "RAISA",
+        "Team Agrar"
+      ],
+      "keywords": [
+        "futtermittel",
+        "hage",
+        "vzf",
+        "schweine"
+      ]
+    },
+    {
+      "name": "EHA Schlachtprotokolle",
+      "area": "EHA KG",
+      "folder": "Schlachtprotokolle",
+      "documentTypes": [
+        "slaughterReport"
+      ],
+      "companies": [
+        "Danish Crown"
+      ],
+      "keywords": [
+        "schlachtdatum",
+        "wiegeprotokoll",
+        "schweine",
+        "row"
+      ]
+    },
+    {
+      "name": "EHA Bestandsregister",
+      "area": "EHA KG",
+      "folder": "Bestandsregister",
+      "documentTypes": [],
+      "companies": [
+        "Rendac"
+      ],
+      "keywords": [
+        "handelspapier",
+        "kadaver",
+        "tierische nebenprodukte"
+      ]
+    },
+    {
+      "name": "Betrieb Belege",
+      "area": "Betrieb",
+      "folder": "Belege",
+      "documentTypes": [
+        "invoice",
+        "creditNote"
+      ],
+      "companies": [
+        "RWG",
+        "Trede & von Pein"
+      ],
+      "keywords": [
+        "dünger",
+        "acker",
+        "pflanzenschutz",
+        "saatgut"
+      ]
+    },
+    {
+      "name": "Privat Rechnungen",
+      "area": "Jan Ehlen",
+      "folder": "Rechnungen",
+      "documentTypes": [
+        "invoice"
+      ],
+      "companies": [
+        "Apple"
+      ],
+      "keywords": [
+        "homepod",
+        "privat"
+      ]
+    },
+    {
+      "name": "Feuerwehr Ausbildung",
+      "area": "Feuerwehr",
+      "folder": "Ausbildung",
+      "documentTypes": [
+        "form",
+        "plan"
+      ],
+      "companies": [],
+      "keywords": [
+        "feuerwehr",
+        "waldbrand",
+        "einsatzkarte",
+        "ausbildung"
       ]
     }
   ]
