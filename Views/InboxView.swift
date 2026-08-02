@@ -3,13 +3,13 @@ import UniformTypeIdentifiers
 
 struct InboxView: View {
 
-    @State private var folderStore = InboxFolderStore()
+    @State private var viewModel = InboxViewModel()
     @State private var isChoosingFolder = false
 
     var body: some View {
         VStack(spacing: 20) {
 
-            if let folderURL = folderStore.folderURL {
+            if let folderURL = viewModel.folderURL {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 48))
 
@@ -21,13 +21,26 @@ struct InboxView: View {
                     .multilineTextAlignment(.center)
                     .textSelection(.enabled)
 
+                if viewModel.documents.isEmpty {
+                    Text("Keine PDF-Dateien gefunden")
+                        .foregroundStyle(.secondary)
+                } else {
+                    List(viewModel.documents) { document in
+                        Label(
+                            document.originalFilename,
+                            systemImage: "doc.richtext"
+                        )
+                    }
+                    .frame(minHeight: 220)
+                }
+
                 HStack {
                     Button("Anderen Ordner auswählen") {
                         isChoosingFolder = true
                     }
 
-                    Button("Ordner entfernen", role: .destructive) {
-                        folderStore.removeFolder()
+                    Button("Neu laden") {
+                        viewModel.loadDocuments()
                     }
                 }
             } else {
@@ -44,12 +57,6 @@ struct InboxView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-
-            if let errorMessage = folderStore.errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
         }
         .padding(40)
         .fileImporter(
@@ -63,13 +70,16 @@ struct InboxView: View {
                     return
                 }
 
-                folderStore.saveFolder(selectedFolder)
+                viewModel.selectFolder(selectedFolder)
 
             case .failure(let error):
                 print(
                     "Ordner konnte nicht ausgewählt werden: \(error.localizedDescription)"
                 )
             }
+        }
+        .onAppear {
+            viewModel.loadDocuments()
         }
     }
 }
