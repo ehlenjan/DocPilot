@@ -3,7 +3,7 @@ import SwiftUI
 struct DocumentListView: View {
 
     let documents: [DocumentRecord]
-    let selectedAnalysis: AtlasAnalysis?
+    let analysisForDocument: (DocumentRecord) -> AtlasAnalysis?
 
     @Binding var selection: DocumentRecord?
 
@@ -14,7 +14,7 @@ struct DocumentListView: View {
         ) { document in
             DocumentRowView(
                 document: document,
-                analysis: analysis(for: document)
+                analysis: analysisForDocument(document)
             )
             .tag(document)
         }
@@ -22,18 +22,6 @@ struct DocumentListView: View {
             minWidth: 240,
             idealWidth: 300
         )
-    }
-
-    private func analysis(
-        for document: DocumentRecord
-    ) -> AtlasAnalysis? {
-        guard
-            document.id == selection?.id
-        else {
-            return nil
-        }
-
-        return selectedAnalysis
     }
 }
 
@@ -55,7 +43,18 @@ struct DocumentListView: View {
 
     DocumentListView(
         documents: documents,
-        selectedAnalysis: nil,
+        analysisForDocument: { document in
+            document.originalFilename == "rechnung.pdf"
+                ? AtlasAnalysis(
+                    documentType: .invoice,
+                    detectedDate: Date(),
+                    sender: "RAISA",
+                    keywords: ["Rechnung"],
+                    confidence: 0.85,
+                    reasons: ["Dokumentart Rechnung erkannt"]
+                )
+                : nil
+        },
         selection: $selection
     )
     .frame(

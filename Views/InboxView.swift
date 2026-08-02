@@ -37,7 +37,7 @@ struct InboxView: View {
                 .deletingPathExtension()
                 .lastPathComponent ?? ""
 
-            viewModel.clearAnalysis()
+            viewModel.selectAnalysis(for: newDocument)
         }
     }
 
@@ -74,7 +74,9 @@ struct InboxView: View {
         HSplitView {
             DocumentListView(
                 documents: viewModel.documents,
-                selectedAnalysis: viewModel.analysis,
+                analysisForDocument: { document in
+                    viewModel.analysis(for: document)
+                },
                 selection: $selectedDocument
             )
 
@@ -162,6 +164,7 @@ struct InboxView: View {
                where: { $0.sourceURL == previousURL }
            ) {
             selectedDocument = refreshedDocument
+            viewModel.selectAnalysis(for: refreshedDocument)
         } else {
             selectedDocument = nil
             filenameDraft = ""
@@ -186,7 +189,7 @@ struct InboxView: View {
             .deletingPathExtension()
             .lastPathComponent
 
-        viewModel.clearAnalysis()
+        viewModel.selectAnalysis(for: renamedDocument)
     }
 }
 

@@ -11,26 +11,58 @@ struct AtlasAnalysis {
 
 struct AtlasAnalyzer {
 
+    private let knowledgeBase: KnowledgeBase
+
+    init() {
+        do {
+            knowledgeBase = try KnowledgeBase.load()
+        } catch {
+            print("KnowledgeBase konnte nicht geladen werden: \(error.localizedDescription)")
+
+            knowledgeBase = KnowledgeBase(
+                companies: [],
+                documentTypes: []
+            )
+        }
+    }
+
     func analyze(text: String) -> AtlasAnalysis {
         let normalizedText = text.lowercased()
 
-        let documentType = detectDocumentType(in: normalizedText)
-        let sender = detectSender(in: normalizedText)
-        let detectedDate = detectDate(in: text)
-        let keywords = detectKeywords(in: normalizedText)
+        let documentType = detectDocumentType(
+            in: normalizedText
+        )
+
+        let sender = detectSender(
+            in: normalizedText
+        )
+
+        let detectedDate = detectDate(
+            in: text
+        )
+
+        let keywords = detectKeywords(
+            in: normalizedText
+        )
 
         var reasons: [String] = []
 
         if documentType != .unknown {
-            reasons.append("Dokumentart \(documentType.rawValue) erkannt")
+            reasons.append(
+                "Dokumentart \(documentType.rawValue) erkannt"
+            )
         }
 
         if let sender {
-            reasons.append("Absender \(sender) erkannt")
+            reasons.append(
+                "Absender \(sender) erkannt"
+            )
         }
 
         if detectedDate != nil {
-            reasons.append("Datum erkannt")
+            reasons.append(
+                "Datum erkannt"
+            )
         }
 
         if !keywords.isEmpty {
@@ -59,19 +91,13 @@ struct AtlasAnalyzer {
     private func detectDocumentType(
         in text: String
     ) -> DocumentType {
-        let rules: [(keywords: [String], type: DocumentType)] = [
-            (["gutschrift"], .creditNote),
-            (["lieferschein"], .deliveryNote),
-            (["schlachtprotokoll", "wiegeprotokoll"], .slaughterReport),
-            (["rechnung"], .invoice),
-            (["vertrag", "vereinbarung"], .contract),
-            (["formular", "fragebogen"], .form),
-            (["plan", "grobplanung"], .plan)
-        ]
+        for rule in knowledgeBase.documentTypes {
+            let didMatch = rule.keywords.contains { keyword in
+                text.contains(keyword.lowercased())
+            }
 
-        for rule in rules {
-            if rule.keywords.contains(where: text.contains) {
-                return rule.type
+            if didMatch {
+                return rule.documentType
             }
         }
 
@@ -81,25 +107,17 @@ struct AtlasAnalyzer {
     private func detectSender(
         in text: String
     ) -> String? {
-        let knownSenders = [
-            "Apple",
-            "RAISA",
-            "RWG",
-            "Trede & von Pein",
-            "LVBZ",
-            "Böttcher",
-            "Autohaus Meyer",
-            "ForFarmers",
-            "Team Agrar",
-            "Danish Crown",
-            "Rendac",
-            "Pro Vieh",
-            "Weidemark"
-        ]
+        for company in knowledgeBase.companies {
+            let didMatch = company.keywords.contains { keyword in
+                text.contains(keyword.lowercased())
+            }
 
-        return knownSenders.first { sender in
-            text.contains(sender.lowercased())
+            if didMatch {
+                return company.name
+            }
         }
+
+        return nil
     }
 
     private func detectDate(
@@ -148,28 +166,20 @@ struct AtlasAnalyzer {
     private func detectKeywords(
         in text: String
     ) -> [String] {
-        let knownKeywords = [
-            "rechnung",
-            "gutschrift",
-            "lieferschein",
-            "schweine",
-            "futtermittel",
-            "tierarzt",
-            "versicherung",
-            "solar",
-            "wind",
-            "acker",
-            "qs",
-            "itw",
-            "feuerwehr",
-            "grundsteuer",
-            "homepod",
-            "belege"
-        ]
+        var matches: [String] = []
 
-        return knownKeywords
-            .filter(text.contains)
-            .map { $0.capitalized }
+        for documentType in knowledgeBase.documentTypes {
+            for keyword in documentType.keywords {
+                if text.contains(keyword.lowercased()) {
+                    matches.append(keyword)
+                }
+            }
+        }
+
+        return Array(
+            Set(matches)
+        )
+        .sorted()
     }
 
     private func calculateConfidence(

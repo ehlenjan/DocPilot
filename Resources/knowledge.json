@@ -1,0 +1,115 @@
+{
+  "companies": [
+    {
+      "name": "RAISA",
+      "keywords": [
+        "raisa",
+        "raisa eg"
+      ]
+    },
+    {
+      "name": "RWG",
+      "keywords": [
+        "rwg",
+        "raiffeisen-warengenossenschaft",
+        "raiffeisen sittensen"
+      ]
+    },
+    {
+      "name": "Trede & von Pein",
+      "keywords": [
+        "trede & von pein",
+        "trede und von pein"
+      ]
+    },
+    {
+      "name": "Team Agrar",
+      "keywords": [
+        "team agrar",
+        "team agrar ag"
+      ]
+    },
+    {
+      "name": "Rendac",
+      "keywords": [
+        "rendac",
+        "rendac rotenburg"
+      ]
+    },
+    {
+      "name": "Danish Crown",
+      "keywords": [
+        "danish crown"
+      ]
+    },
+    {
+      "name": "Apple",
+      "keywords": [
+        "apple",
+        "apple distribution"
+      ]
+    }
+  ],
+  "documentTypes": [
+    {
+      "type": "invoice",
+      "displayName": "Rechnung",
+      "keywords": [
+        "rechnung",
+        "rechnungs-nr",
+        "rechnungssumme"
+      ]
+    },
+    {
+      "type": "creditNote",
+      "displayName": "Gutschrift",
+      "keywords": [
+        "gutschrift",
+        "belegnummer"
+      ]
+    },
+    {
+      "type": "deliveryNote",
+      "displayName": "Lieferschein",
+      "keywords": [
+        "lieferschein",
+        "lieferschein-nr",
+        "lieferdatum"
+      ]
+    },
+    {
+      "type": "slaughterReport",
+      "displayName": "Schlachtprotokoll",
+      "keywords": [
+        "schlachtprotokoll",
+        "schlachtdatum",
+        "wiegeprotokoll"
+      ]
+    },
+    {
+      "type": "contract",
+      "displayName": "Vertrag",
+      "keywords": [
+        "vertrag",
+        "vereinbarung"
+      ]
+    },
+    {
+      "type": "form",
+      "displayName": "Formular",
+      "keywords": [
+        "formular",
+        "fragebogen"
+      ]
+    },
+    {
+      "type": "plan",
+      "displayName": "Plan",
+      "keywords": [
+        "grobplanung",
+        "lageplan",
+        "planung"
+      ]
+    }
+  ]
+}
