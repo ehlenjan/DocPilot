@@ -6,9 +6,13 @@ final class InboxViewModel {
 
     private let folderStore = InboxFolderStore()
     private let filenameSuggestionService = FilenameSuggestionService()
+    private let pdfTextExtractionService = PDFTextExtractionService()
 
     var documents: [DocumentRecord] = []
     var errorMessage: String?
+
+    var extractedText: String = ""
+    var textExtractionMessage: String?
 
     var folderURL: URL? {
         folderStore.folderURL
@@ -52,6 +56,28 @@ final class InboxViewModel {
             errorMessage =
                 "Die Dateien konnten nicht gelesen werden: \(error.localizedDescription)"
         }
+    }
+
+    func extractText(from document: DocumentRecord) {
+        extractedText = ""
+        textExtractionMessage = nil
+
+        do {
+            extractedText = try pdfTextExtractionService.extractText(
+                from: document.sourceURL
+            )
+
+            textExtractionMessage =
+                "\(extractedText.count) Zeichen aus dem PDF gelesen."
+
+        } catch {
+            textExtractionMessage = error.localizedDescription
+        }
+    }
+
+    func clearExtractedText() {
+        extractedText = ""
+        textExtractionMessage = nil
     }
 
     func suggestFilename(
@@ -115,6 +141,8 @@ final class InboxViewModel {
     func removeFolder() {
         folderStore.removeFolder()
         documents = []
+        extractedText = ""
+        textExtractionMessage = nil
         errorMessage = nil
     }
 }

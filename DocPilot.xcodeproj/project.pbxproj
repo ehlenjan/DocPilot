@@ -16,6 +16,8 @@
 		303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A38301F72DB001D99ED /* InboxViewModel.swift */; };
 		303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3A301F765F001D99ED /* PDFPreviewView.swift */; };
 		303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */; };
+		303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */; };
+		303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A40301F7B7E001D99ED /* PDFTextExtractionService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +31,8 @@
 		303B7A38301F72DB001D99ED /* InboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxViewModel.swift; sourceTree = "<group>"; };
 		303B7A3A301F765F001D99ED /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
 		303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilenameSuggestionService.swift; sourceTree = "<group>"; };
+		303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasPanelView.swift; sourceTree = "<group>"; };
+		303B7A40301F7B7E001D99ED /* PDFTextExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTextExtractionService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +92,7 @@
 				303B7A20301F59E8001D99ED /* ContentView.swift */,
 				303B7A31301F6C68001D99ED /* InboxView.swift */,
 				303B7A3A301F765F001D99ED /* PDFPreviewView.swift */,
+				303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -105,6 +110,7 @@
 			children = (
 				303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */,
 				303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */,
+				303B7A40301F7B7E001D99ED /* PDFTextExtractionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -206,7 +212,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */,
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
+				303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */,
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,

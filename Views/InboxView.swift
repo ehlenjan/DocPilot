@@ -21,29 +21,18 @@ struct InboxView: View {
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
-            switch result {
-            case .success(let urls):
-                guard let selectedFolder = urls.first else {
-                    return
-                }
-
-                selectedDocument = nil
-                filenameDraft = ""
-                viewModel.selectFolder(selectedFolder)
-
-            case .failure(let error):
-                viewModel.errorMessage =
-                    "Ordner konnte nicht ausgewählt werden: \(error.localizedDescription)"
-            }
+            handleFolderSelection(result)
         }
         .onAppear {
             viewModel.loadDocuments()
         }
         .onChange(of: selectedDocument) { _, newDocument in
-            filenameDraft =
-                newDocument?.sourceURL
-                    .deletingPathExtension()
-                    .lastPathComponent ?? ""
+            filenameDraft = newDocument?
+                .sourceURL
+                .deletingPathExtension()
+                .lastPathComponent ?? ""
+
+            viewModel.clearExtractedText()
         }
     }
 
@@ -96,17 +85,7 @@ struct InboxView: View {
                 .foregroundStyle(.secondary)
 
             Button {
-                viewModel.loadDocuments()
-
-                if let selectedDocument,
-                   let refreshedDocument = viewModel.documents.first(
-                    where: { $0.sourceURL == selectedDocument.sourceURL }
-                   ) {
-                    self.selectedDocument = refreshedDocument
-                } else {
-                    self.selectedDocument = nil
-                    filenameDraft = ""
-                }
+                reloadDocuments()
             } label: {
                 Label("Neu laden", systemImage: "arrow.clockwise")
             }
@@ -120,110 +99,74 @@ struct InboxView: View {
 
     private var documentBrowser: some View {
         HSplitView {
-            List(viewModel.documents, selection: $selectedDocument) { document in
-                Label(
-                    document.originalFilename,
-                    systemImage: "doc.richtext"
-                )
-                .tag(document)
-            }
-            .frame(minWidth: 260, idealWidth: 320)
-
-            Group {
-                if let selectedDocument {
-                    documentDetail(for: selectedDocument)
-                } else {
-                    ContentUnavailableView(
-                        "Kein Dokument ausgewählt",
-                        systemImage: "doc.text.magnifyingglass",
-                        description: Text(
-                            "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
-                        )
-                    )
-                }
-            }
-            .frame(minWidth: 620)
+            documentList
+            documentPreview
+            atlasPanel
         }
     }
 
-    private func documentDetail(
-        for document: DocumentRecord
-    ) -> some View {
-        HSplitView {
-            PDFPreviewView(url: document.sourceURL)
+    private var documentList: some View {
+        List(
+            viewModel.documents,
+            selection: $selectedDocument
+        ) { document in
+            Label(
+                document.originalFilename,
+                systemImage: "doc.richtext"
+            )
+            .tag(document)
+        }
+        .frame(minWidth: 240, idealWidth: 300)
+    }
+
+    @ViewBuilder
+    private var documentPreview: some View {
+        if let selectedDocument {
+            PDFPreviewView(url: selectedDocument.sourceURL)
                 .frame(minWidth: 420)
-
-            Form {
-                Section("Dateiname") {
-                    TextField(
-                        "Neuer Dateiname",
-                        text: $filenameDraft
-                    )
-
-                    Text(".pdf")
-                        .foregroundStyle(.secondary)
-
-                    Button {
-                        filenameDraft = viewModel.suggestFilename(
-                            for: document
-                        )
-                    } label: {
-                        Label(
-                            "Vorschlag erzeugen",
-                            systemImage: "sparkles"
-                        )
-                    }
-                }
-
-                Section("Aktueller Name") {
-                    Text(document.originalFilename)
-                        .textSelection(.enabled)
-                }
-
-                Section("Status") {
-                    Label(
-                        "Bereit zum Umbenennen",
-                        systemImage: "pencil"
-                    )
-                    .foregroundStyle(.secondary)
-                }
-
-                Section {
-                    Button("Datei umbenennen") {
-                        renameSelectedDocument()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.return, modifiers: [.command])
-                    .disabled(
-                        filenameDraft
-                            .trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-                            .isEmpty
-                    )
-                }
-            }
-            .formStyle(.grouped)
-            .frame(minWidth: 300, idealWidth: 350)
+        } else {
+            ContentUnavailableView(
+                "Kein Dokument ausgewählt",
+                systemImage: "doc.text.magnifyingglass",
+                description: Text(
+                    "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
+                )
+            )
+            .frame(minWidth: 420)
         }
     }
 
-    private func renameSelectedDocument() {
-        guard let selectedDocument else {
-            return
+    @ViewBuilder
+    private var atlasPanel: some View {
+        if let selectedDocument {
+            AtlasPanelView(
+                document: selectedDocument,
+                filenameDraft: $filenameDraft,
+                extractedText: viewModel.extractedText,
+                textExtractionMessage: viewModel.textExtractionMessage,
+                onAnalyzeDocument: {
+                    viewModel.extractText(from: selectedDocument)
+                },
+                onGenerateSuggestion: {
+                    filenameDraft = viewModel.suggestFilename(
+                        for: selectedDocument
+                    )
+                },
+                onRename: {
+                    renameSelectedDocument()
+                }
+            )
+            .frame(minWidth: 320, idealWidth: 370)
+        } else {
+            ContentUnavailableView(
+                "Atlas wartet",
+                systemImage: "brain.head.profile",
+                description: Text(
+                    "Wähle ein Dokument aus, damit Atlas es analysieren kann."
+                )
+            )
+            .frame(minWidth: 320, idealWidth: 370)
         }
-
-        guard let renamedDocument = viewModel.rename(
-            document: selectedDocument,
-            to: filenameDraft
-        ) else {
-            return
-        }
-
-        self.selectedDocument = renamedDocument
-        filenameDraft = renamedDocument.sourceURL
-            .deletingPathExtension()
-            .lastPathComponent
     }
 
     private var emptyState: some View {
@@ -249,9 +192,66 @@ struct InboxView: View {
         }
         .padding(40)
     }
+
+    private func handleFolderSelection(
+        _ result: Result<[URL], Error>
+    ) {
+        switch result {
+        case .success(let urls):
+            guard let selectedFolder = urls.first else {
+                return
+            }
+
+            selectedDocument = nil
+            filenameDraft = ""
+            viewModel.clearExtractedText()
+            viewModel.selectFolder(selectedFolder)
+
+        case .failure(let error):
+            viewModel.errorMessage =
+                "Ordner konnte nicht ausgewählt werden: \(error.localizedDescription)"
+        }
+    }
+
+    private func reloadDocuments() {
+        let previousURL = selectedDocument?.sourceURL
+
+        viewModel.loadDocuments()
+        viewModel.clearExtractedText()
+
+        if let previousURL,
+           let refreshedDocument = viewModel.documents.first(
+               where: { $0.sourceURL == previousURL }
+           ) {
+            selectedDocument = refreshedDocument
+        } else {
+            selectedDocument = nil
+            filenameDraft = ""
+        }
+    }
+
+    private func renameSelectedDocument() {
+        guard let selectedDocument else {
+            return
+        }
+
+        guard let renamedDocument = viewModel.rename(
+            document: selectedDocument,
+            to: filenameDraft
+        ) else {
+            return
+        }
+
+        self.selectedDocument = renamedDocument
+        filenameDraft = renamedDocument.sourceURL
+            .deletingPathExtension()
+            .lastPathComponent
+
+        viewModel.clearExtractedText()
+    }
 }
 
 #Preview {
     InboxView()
-        .frame(width: 1200, height: 760)
+        .frame(width: 1300, height: 760)
 }
