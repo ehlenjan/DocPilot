@@ -14,6 +14,7 @@
 		303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */; };
 		303B7A36301F722C001D99ED /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 303B7A35301F7216001D99ED /* README.md */; };
 		303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A38301F72DB001D99ED /* InboxViewModel.swift */; };
+		303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A3A301F765F001D99ED /* PDFPreviewView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxFolderStore.swift; sourceTree = "<group>"; };
 		303B7A35301F7216001D99ED /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		303B7A38301F72DB001D99ED /* InboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxViewModel.swift; sourceTree = "<group>"; };
+		303B7A3A301F765F001D99ED /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -83,6 +85,7 @@
 			children = (
 				303B7A20301F59E8001D99ED /* ContentView.swift */,
 				303B7A31301F6C68001D99ED /* InboxView.swift */,
+				303B7A3A301F765F001D99ED /* PDFPreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -203,6 +206,7 @@
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A32301F6C68001D99ED /* InboxView.swift in Sources */,
+				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
