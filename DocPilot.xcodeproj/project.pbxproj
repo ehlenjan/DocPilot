@@ -49,6 +49,10 @@
 		303B7A873020F797001D99ED /* AtlasLearningCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A863020F797001D99ED /* AtlasLearningCard.swift */; };
 		303B7A893020F7F0001D99ED /* InboxViewModel+Learning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A883020F7F0001D99ED /* InboxViewModel+Learning.swift */; };
 		303B7A8B3020F964001D99ED /* LearningListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A8A3020F964001D99ED /* LearningListView.swift */; };
+		303B7A9B30211168001D99ED /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A9A30211168001D99ED /* AppSettings.swift */; };
+		303B7A9D302111A1001D99ED /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7A9C302111A1001D99ED /* SettingsManager.swift */; };
+		303B7AA630211753001D99ED /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AA530211753001D99ED /* GeneralSettingsView.swift */; };
+		303B7AA830211774001D99ED /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AA730211774001D99ED /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +99,10 @@
 		303B7A863020F797001D99ED /* AtlasLearningCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasLearningCard.swift; sourceTree = "<group>"; };
 		303B7A883020F7F0001D99ED /* InboxViewModel+Learning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InboxViewModel+Learning.swift"; sourceTree = "<group>"; };
 		303B7A8A3020F964001D99ED /* LearningListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningListView.swift; sourceTree = "<group>"; };
+		303B7A9A30211168001D99ED /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		303B7A9C302111A1001D99ED /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
+		303B7AA530211753001D99ED /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		303B7AA730211774001D99ED /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -151,6 +159,7 @@
 		303B7A2A301F69BD001D99ED /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				303B7AA4302116BA001D99ED /* Settings */,
 				303B7A603020EC0C001D99ED /* Atlas */,
 				303B7A613020EC19001D99ED /* Inbox */,
 				303B7A623020EC24001D99ED /* PDF */,
@@ -171,6 +180,7 @@
 		303B7A2C301F69D8001D99ED /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				303B7A9930211150001D99ED /* Settings */,
 				303B7A693020ED8B001D99ED /* PDF */,
 				303B7A683020ED89001D99ED /* Files */,
 				303B7A673020ED84001D99ED /* OCR */,
@@ -318,6 +328,24 @@
 			path = Learning;
 			sourceTree = "<group>";
 		};
+		303B7A9930211150001D99ED /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				303B7A9A30211168001D99ED /* AppSettings.swift */,
+				303B7A9C302111A1001D99ED /* SettingsManager.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		303B7AA4302116BA001D99ED /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				303B7AA530211753001D99ED /* GeneralSettingsView.swift */,
+				303B7AA730211774001D99ED /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -395,6 +423,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */,
+				303B7AA830211774001D99ED /* SettingsView.swift in Sources */,
 				303B7A5F301FD7D4001D99ED /* FolderSuggestionEngine.swift in Sources */,
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
 				303B7A833020F6EB001D99ED /* LearningManager.swift in Sources */,
@@ -404,6 +433,7 @@
 				303B7A743020F088001D99ED /* AtlasSummaryCard.swift in Sources */,
 				303B7A783020F1B9001D99ED /* AtlasDashboardGrid.swift in Sources */,
 				303B7A893020F7F0001D99ED /* InboxViewModel+Learning.swift in Sources */,
+				303B7AA630211753001D99ED /* GeneralSettingsView.swift in Sources */,
 				303B7A6C3020EF43001D99ED /* AtlasConfidenceCard.swift in Sources */,
 				303B7A723020EFE2001D99ED /* AtlasRenameCard.swift in Sources */,
 				303B7A4F301FA8D7001D99ED /* DocumentRowView.swift in Sources */,
@@ -431,6 +461,8 @@
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
+				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
+				303B7A9D302111A1001D99ED /* SettingsManager.swift in Sources */,
 				303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */,
 				303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */,
 				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,
