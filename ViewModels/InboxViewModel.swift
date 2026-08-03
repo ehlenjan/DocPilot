@@ -41,6 +41,8 @@ final class InboxViewModel {
     var analysis: AtlasAnalysis?
     var folderSuggestion: FolderSuggestion?
 
+    var isAnalyzing = false
+
     private var analysesByURL: [URL: AtlasAnalysis] = [:]
     private var folderSuggestionsByURL: [URL: FolderSuggestion] = [:]
 
@@ -98,6 +100,7 @@ final class InboxViewModel {
 
         } catch {
             documents = []
+
             errorMessage =
                 "Die Dateien konnten nicht gelesen werden: \(error.localizedDescription)"
         }
@@ -145,6 +148,12 @@ final class InboxViewModel {
     }
 
     func analyze(document: DocumentRecord) {
+        isAnalyzing = true
+
+        defer {
+            isAnalyzing = false
+        }
+
         extractedText = ""
         textExtractionMessage = nil
         analysis = nil
@@ -156,6 +165,7 @@ final class InboxViewModel {
             )
 
             extractedText = text
+
             textExtractionMessage =
                 "\(text.count) Zeichen aus dem PDF gelesen."
 
@@ -221,6 +231,7 @@ final class InboxViewModel {
         textExtractionMessage = nil
         analysis = nil
         folderSuggestion = nil
+        isAnalyzing = false
     }
 
     func suggestFilename(
@@ -255,6 +266,7 @@ final class InboxViewModel {
         guard !cleanedName.isEmpty else {
             errorMessage =
                 "Der neue Dateiname darf nicht leer sein."
+
             return nil
         }
 
@@ -272,6 +284,7 @@ final class InboxViewModel {
         ) else {
             errorMessage =
                 "Eine Datei mit diesem Namen existiert bereits."
+
             return nil
         }
 
@@ -314,16 +327,20 @@ final class InboxViewModel {
         } catch {
             errorMessage =
                 "Die Datei konnte nicht umbenannt werden: \(error.localizedDescription)"
+
             return nil
         }
     }
 
     func removeFolder() {
         folderStore.removeFolder()
+
         documents = []
         analysesByURL = [:]
         folderSuggestionsByURL = [:]
+
         clearAnalysis()
+
         errorMessage = nil
     }
 

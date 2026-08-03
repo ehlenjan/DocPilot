@@ -32,7 +32,6 @@ struct InboxView: View {
             viewModel.loadDocuments()
         }
         .onChange(of: selectedDocument) { _, newDocument in
-
             filenameDraft =
                 newDocument?
                     .sourceURL
@@ -45,10 +44,10 @@ struct InboxView: View {
         }
     }
 
-    private func inboxContent(folderURL: URL) -> some View {
-
+    private func inboxContent(
+        folderURL: URL
+    ) -> some View {
         VStack(spacing: 0) {
-
             InboxHeaderView(
                 folderURL: folderURL,
                 documentCount: viewModel.documents.count,
@@ -63,29 +62,21 @@ struct InboxView: View {
             Divider()
 
             if let errorMessage = viewModel.errorMessage {
-
                 ContentUnavailableView(
                     "Aktion fehlgeschlagen",
                     systemImage: "exclamationmark.triangle",
                     description: Text(errorMessage)
                 )
-
             } else if viewModel.documents.isEmpty {
-
                 EmptyDocumentListView()
-
             } else {
-
                 documentBrowser
-
             }
         }
     }
 
     private var documentBrowser: some View {
-
         HSplitView {
-
             DocumentListView(
                 documents: viewModel.documents,
                 analysisForDocument: { document in
@@ -102,40 +93,39 @@ struct InboxView: View {
 
     @ViewBuilder
     private var documentPreview: some View {
-
         if let document = selectedDocument {
-
             PDFPreviewView(
                 url: document.sourceURL
             )
             .frame(minWidth: 420)
-
         } else {
-
             EmptySelectionView(
                 title: "Kein Dokument ausgewählt",
                 systemImage: "doc.text.magnifyingglass",
-                description: "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
+                description:
+                    "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
             )
             .frame(minWidth: 420)
-
         }
     }
 
     @ViewBuilder
     private var atlasPanel: some View {
-
         if let document = selectedDocument {
-
             AtlasPanelView(
                 document: document,
                 filenameDraft: $filenameDraft,
                 extractedText: viewModel.extractedText,
-                textExtractionMessage: viewModel.textExtractionMessage,
+                textExtractionMessage:
+                    viewModel.textExtractionMessage,
                 analysis: viewModel.analysis,
-                folderSuggestion: viewModel.folderSuggestion,
+                folderSuggestion:
+                    viewModel.folderSuggestion,
+                isAnalyzing: viewModel.isAnalyzing,
                 onAnalyzeDocument: {
-                    viewModel.analyze(document: document)
+                    viewModel.analyze(
+                        document: document
+                    )
                 },
                 onGenerateSuggestion: {
                     filenameDraft =
@@ -143,38 +133,36 @@ struct InboxView: View {
                             for: document
                         )
                 },
+                onRememberSuggestion: {
+                    viewModel.rememberCurrentSuggestion()
+                },
                 onRename: {
                     renameSelectedDocument()
                 }
             )
             .frame(
-                minWidth: 320,
-                idealWidth: 370
+                minWidth: 360,
+                idealWidth: 430
             )
-
         } else {
-
             EmptySelectionView(
                 title: "Atlas wartet",
                 systemImage: "brain.head.profile",
-                description: "Wähle ein Dokument aus, damit Atlas es analysieren kann."
+                description:
+                    "Wähle ein Dokument aus, damit Atlas es analysieren kann."
             )
             .frame(
-                minWidth: 320,
-                idealWidth: 370
+                minWidth: 360,
+                idealWidth: 430
             )
-
         }
     }
 
     private func handleFolderSelection(
         _ result: Result<[URL], Error>
     ) {
-
         switch result {
-
         case .success(let urls):
-
             guard let selectedFolder = urls.first else {
                 return
             }
@@ -186,14 +174,12 @@ struct InboxView: View {
             viewModel.selectFolder(selectedFolder)
 
         case .failure(let error):
-
             viewModel.errorMessage =
                 "Ordner konnte nicht ausgewählt werden: \(error.localizedDescription)"
         }
     }
 
     private func reloadDocuments() {
-
         let previousURL =
             selectedDocument?.sourceURL
 
@@ -212,9 +198,7 @@ struct InboxView: View {
             viewModel.selectAnalysis(
                 for: refreshedDocument
             )
-
         } else {
-
             selectedDocument = nil
             filenameDraft = ""
 
@@ -223,7 +207,6 @@ struct InboxView: View {
     }
 
     private func renameSelectedDocument() {
-
         guard let document = selectedDocument else {
             return
         }
@@ -252,5 +235,8 @@ struct InboxView: View {
 
 #Preview {
     InboxView()
-        .frame(width: 1350, height: 760)
+        .frame(
+            width: 1400,
+            height: 800
+        )
 }
