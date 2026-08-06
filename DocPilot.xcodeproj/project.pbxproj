@@ -56,6 +56,14 @@
 		303B7AAA3021193A001D99ED /* AtlasSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AA93021193A001D99ED /* AtlasSettingsView.swift */; };
 		303B7AAC302119E3001D99ED /* LearningSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AAB302119E3001D99ED /* LearningSettingsView.swift */; };
 		303B7AAE30211A72001D99ED /* LearningMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AAD30211A72001D99ED /* LearningMatcher.swift */; };
+		303B7AB03021CCAC001D99ED /* AtlasRecommendationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AAF3021CCAC001D99ED /* AtlasRecommendationCard.swift */; };
+		303B7AB33021D0A2001D99ED /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AB23021D0A2001D99ED /* OCRService.swift */; };
+		303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AB53021D5CC001D99ED /* AtlasLearningSheet.swift */; };
+		303B7AB830246FB4001D99ED /* ArchiveFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AB730246FB4001D99ED /* ArchiveFolder.swift */; };
+		303B7ABA30247633001D99ED /* ArchiveFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AB930247633001D99ED /* ArchiveFolderStore.swift */; };
+		303B7ABC30248E25001D99ED /* FolderBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */; };
+		303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ABE302491CA001D99ED /* ArchiveScanner.swift */; };
+		303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC0302491D9001D99ED /* ArchiveNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -109,6 +117,14 @@
 		303B7AA93021193A001D99ED /* AtlasSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSettingsView.swift; sourceTree = "<group>"; };
 		303B7AAB302119E3001D99ED /* LearningSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningSettingsView.swift; sourceTree = "<group>"; };
 		303B7AAD30211A72001D99ED /* LearningMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningMatcher.swift; sourceTree = "<group>"; };
+		303B7AAF3021CCAC001D99ED /* AtlasRecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationCard.swift; sourceTree = "<group>"; };
+		303B7AB23021D0A2001D99ED /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
+		303B7AB53021D5CC001D99ED /* AtlasLearningSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasLearningSheet.swift; sourceTree = "<group>"; };
+		303B7AB730246FB4001D99ED /* ArchiveFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFolder.swift; sourceTree = "<group>"; };
+		303B7AB930247633001D99ED /* ArchiveFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFolderStore.swift; sourceTree = "<group>"; };
+		303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderBookmarkStore.swift; sourceTree = "<group>"; };
+		303B7ABE302491CA001D99ED /* ArchiveScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveScanner.swift; sourceTree = "<group>"; };
+		303B7AC0302491D9001D99ED /* ArchiveNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveNode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -165,6 +181,7 @@
 		303B7A2A301F69BD001D99ED /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				303B7AB43021D5AB001D99ED /* Learning */,
 				303B7AA4302116BA001D99ED /* Settings */,
 				303B7A603020EC0C001D99ED /* Atlas */,
 				303B7A613020EC19001D99ED /* Inbox */,
@@ -179,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				303B7A2F301F6BD5001D99ED /* DocumentRecord.swift */,
+				303B7AB730246FB4001D99ED /* ArchiveFolder.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -186,6 +204,7 @@
 		303B7A2C301F69D8001D99ED /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				303B7ABD302491AC001D99ED /* Archive */,
 				303B7A9930211150001D99ED /* Settings */,
 				303B7A693020ED8B001D99ED /* PDF */,
 				303B7A683020ED89001D99ED /* Files */,
@@ -197,6 +216,7 @@
 		303B7A2D301F69E3001D99ED /* Brain */ = {
 			isa = PBXGroup;
 			children = (
+				303B7AB13021D08A001D99ED /* OCR */,
 				303B7A7D3020F535001D99ED /* Learning */,
 				303B7A643020ECEF001D99ED /* Analysis */,
 				303B7A653020ECFC001D99ED /* Knowledge */,
@@ -225,6 +245,7 @@
 		303B7A603020EC0C001D99ED /* Atlas */ = {
 			isa = PBXGroup;
 			children = (
+				303B7AB53021D5CC001D99ED /* AtlasLearningSheet.swift */,
 				303B7A3E301F7A94001D99ED /* AtlasPanelView.swift */,
 				303B7A6B3020EF43001D99ED /* AtlasConfidenceCard.swift */,
 				303B7A6D3020EF7C001D99ED /* AtlasInfoCard.swift */,
@@ -237,6 +258,7 @@
 				303B7A7B3020F262001D99ED /* AtlasCard.swift */,
 				303B7A863020F797001D99ED /* AtlasLearningCard.swift */,
 				303B7A8A3020F964001D99ED /* LearningListView.swift */,
+				303B7AAF3021CCAC001D99ED /* AtlasRecommendationCard.swift */,
 			);
 			path = Atlas;
 			sourceTree = "<group>";
@@ -311,6 +333,8 @@
 				303B7A33301F6DD7001D99ED /* InboxFolderStore.swift */,
 				303B7A50301FAB03001D99ED /* AutoAnalysisService.swift */,
 				303B7A3C301F7935001D99ED /* FilenameSuggestionService.swift */,
+				303B7AB930247633001D99ED /* ArchiveFolderStore.swift */,
+				303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */,
 			);
 			path = Files;
 			sourceTree = "<group>";
@@ -353,6 +377,30 @@
 				303B7AAB302119E3001D99ED /* LearningSettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		303B7AB13021D08A001D99ED /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				303B7AB23021D0A2001D99ED /* OCRService.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
+		303B7AB43021D5AB001D99ED /* Learning */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Learning;
+			sourceTree = "<group>";
+		};
+		303B7ABD302491AC001D99ED /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				303B7ABE302491CA001D99ED /* ArchiveScanner.swift */,
+				303B7AC0302491D9001D99ED /* ArchiveNode.swift */,
+			);
+			path = Archive;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -443,8 +491,12 @@
 				303B7A743020F088001D99ED /* AtlasSummaryCard.swift in Sources */,
 				303B7A783020F1B9001D99ED /* AtlasDashboardGrid.swift in Sources */,
 				303B7A893020F7F0001D99ED /* InboxViewModel+Learning.swift in Sources */,
+				303B7AB03021CCAC001D99ED /* AtlasRecommendationCard.swift in Sources */,
 				303B7AA630211753001D99ED /* GeneralSettingsView.swift in Sources */,
+				303B7ABA30247633001D99ED /* ArchiveFolderStore.swift in Sources */,
+				303B7ABC30248E25001D99ED /* FolderBookmarkStore.swift in Sources */,
 				303B7A6C3020EF43001D99ED /* AtlasConfidenceCard.swift in Sources */,
+				303B7AB33021D0A2001D99ED /* OCRService.swift in Sources */,
 				303B7A723020EFE2001D99ED /* AtlasRenameCard.swift in Sources */,
 				303B7A4F301FA8D7001D99ED /* DocumentRowView.swift in Sources */,
 				303B7A51301FAB03001D99ED /* AutoAnalysisService.swift in Sources */,
@@ -458,6 +510,7 @@
 				303B7A873020F797001D99ED /* AtlasLearningCard.swift in Sources */,
 				303B7A7A3020F22D001D99ED /* AtlasQuickFactsCard.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
+				303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
 				303B7A7F3020F55F001D99ED /* LearningEntry.swift in Sources */,
 				303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */,
@@ -467,14 +520,17 @@
 				303B7AAA3021193A001D99ED /* AtlasSettingsView.swift in Sources */,
 				303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */,
 				303B7A59301FD4FE001D99ED /* DocumentClassifier.swift in Sources */,
+				303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
 				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
 				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
+				303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */,
 				303B7A9D302111A1001D99ED /* SettingsManager.swift in Sources */,
 				303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */,
+				303B7AB830246FB4001D99ED /* ArchiveFolder.swift in Sources */,
 				303B7AAE30211A72001D99ED /* LearningMatcher.swift in Sources */,
 				303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */,
 				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,

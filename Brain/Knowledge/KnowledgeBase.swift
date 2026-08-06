@@ -5,6 +5,31 @@ struct KnowledgeBase: Decodable {
     let companies: [CompanyRule]
     let documentTypes: [DocumentTypeRule]
     let folderRules: [FolderRule]
+    
+    var archiveFolders: [ArchiveFolder] {
+        let folders = folderRules.compactMap { rule -> ArchiveFolder? in
+            guard let area = rule.archiveArea else {
+                return nil
+            }
+
+            return ArchiveFolder(
+                area: area,
+                name: rule.folder
+            )
+        }
+
+        return Array(Set(folders)).sorted {
+            if $0.area.rawValue == $1.area.rawValue {
+                return $0.name.localizedStandardCompare(
+                    $1.name
+                ) == .orderedAscending
+            }
+
+            return $0.area.rawValue.localizedStandardCompare(
+                $1.area.rawValue
+            ) == .orderedAscending
+        }
+    }
 
     static func load() throws -> KnowledgeBase {
         guard let url = Bundle.main.url(

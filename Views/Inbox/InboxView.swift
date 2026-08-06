@@ -7,6 +7,7 @@ struct InboxView: View {
     @State private var isChoosingFolder = false
     @State private var selectedDocument: DocumentRecord?
     @State private var filenameDraft = ""
+    @State private var isShowingAtlasHelp = false
 
     var body: some View {
         Group {
@@ -27,6 +28,56 @@ struct InboxView: View {
             allowsMultipleSelection: false
         ) { result in
             handleFolderSelection(result)
+        }
+        .sheet(
+            isPresented: $isShowingAtlasHelp
+        ) {
+            AtlasLearningSheet(
+                currentAnalysis: viewModel.analysis,
+                currentFolderSuggestion:
+                    viewModel.folderSuggestion,
+                onCancel: {
+                    isShowingAtlasHelp = false
+                },
+                onSave: {
+                    company,
+                    documentType,
+                    detectedDate,
+                    keywords,
+                    archiveArea,
+                    folder in
+
+                    let correctedAnalysis = AtlasAnalysis(
+                        documentType: documentType,
+                        detectedDate: detectedDate,
+                        sender: company,
+                        keywords: keywords,
+                        confidence: 1.0,
+                        reasons: [
+                            "Informationen wurden vom Benutzer ergänzt"
+                        ]
+                    )
+
+                    let correctedDestination =
+                        FolderSuggestion(
+                            ruleName:
+                                "Manuell gelernte Zuordnung",
+                            area: archiveArea,
+                            folder: folder,
+                            confidence: 1.0,
+                            reasons: [
+                                "Zielordner wurde vom Benutzer bestätigt"
+                            ]
+                        )
+
+                    LearningEngine().remember(
+                        analysis: correctedAnalysis,
+                        destination: correctedDestination
+                    )
+
+                    isShowingAtlasHelp = false
+                }
+            )
         }
         .onAppear {
             viewModel.loadDocuments()
@@ -64,7 +115,8 @@ struct InboxView: View {
             if let errorMessage = viewModel.errorMessage {
                 ContentUnavailableView(
                     "Aktion fehlgeschlagen",
-                    systemImage: "exclamationmark.triangle",
+                    systemImage:
+                        "exclamationmark.triangle",
                     description: Text(errorMessage)
                 )
             } else if viewModel.documents.isEmpty {
@@ -101,7 +153,8 @@ struct InboxView: View {
         } else {
             EmptySelectionView(
                 title: "Kein Dokument ausgewählt",
-                systemImage: "doc.text.magnifyingglass",
+                systemImage:
+                    "doc.text.magnifyingglass",
                 description:
                     "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
             )
@@ -115,13 +168,15 @@ struct InboxView: View {
             AtlasPanelView(
                 document: document,
                 filenameDraft: $filenameDraft,
-                extractedText: viewModel.extractedText,
+                extractedText:
+                    viewModel.extractedText,
                 textExtractionMessage:
                     viewModel.textExtractionMessage,
                 analysis: viewModel.analysis,
                 folderSuggestion:
                     viewModel.folderSuggestion,
-                isAnalyzing: viewModel.isAnalyzing,
+                isAnalyzing:
+                    viewModel.isAnalyzing,
                 onAnalyzeDocument: {
                     viewModel.analyze(
                         document: document
@@ -134,7 +189,11 @@ struct InboxView: View {
                         )
                 },
                 onRememberSuggestion: {
-                    viewModel.rememberCurrentSuggestion()
+                    viewModel
+                        .rememberCurrentSuggestion()
+                },
+                onHelpAtlas: {
+                    isShowingAtlasHelp = true
                 },
                 onRename: {
                     renameSelectedDocument()
@@ -147,7 +206,8 @@ struct InboxView: View {
         } else {
             EmptySelectionView(
                 title: "Atlas wartet",
-                systemImage: "brain.head.profile",
+                systemImage:
+                    "brain.head.profile",
                 description:
                     "Wähle ein Dokument aus, damit Atlas es analysieren kann."
             )
@@ -163,7 +223,9 @@ struct InboxView: View {
     ) {
         switch result {
         case .success(let urls):
-            guard let selectedFolder = urls.first else {
+            guard let selectedFolder =
+                urls.first
+            else {
                 return
             }
 
@@ -171,7 +233,9 @@ struct InboxView: View {
             filenameDraft = ""
 
             viewModel.clearAnalysis()
-            viewModel.selectFolder(selectedFolder)
+            viewModel.selectFolder(
+                selectedFolder
+            )
 
         case .failure(let error):
             viewModel.errorMessage =
@@ -193,7 +257,8 @@ struct InboxView: View {
                 }
             ) {
 
-            selectedDocument = refreshedDocument
+            selectedDocument =
+                refreshedDocument
 
             viewModel.selectAnalysis(
                 for: refreshedDocument
@@ -207,7 +272,9 @@ struct InboxView: View {
     }
 
     private func renameSelectedDocument() {
-        guard let document = selectedDocument else {
+        guard let document =
+            selectedDocument
+        else {
             return
         }
 
@@ -220,7 +287,8 @@ struct InboxView: View {
             return
         }
 
-        selectedDocument = renamedDocument
+        selectedDocument =
+            renamedDocument
 
         filenameDraft =
             renamedDocument.sourceURL

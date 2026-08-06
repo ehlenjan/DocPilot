@@ -2,6 +2,10 @@ import SwiftUI
 
 struct AtlasPanelView: View {
 
+    @State private var analysisExpanded = false
+    @State private var learningExpanded = false
+    @State private var fileExpanded = false
+
     let document: DocumentRecord
 
     @Binding var filenameDraft: String
@@ -16,32 +20,19 @@ struct AtlasPanelView: View {
     let onAnalyzeDocument: () -> Void
     let onGenerateSuggestion: () -> Void
     let onRememberSuggestion: () -> Void
+    let onHelpAtlas: () -> Void
     let onRename: () -> Void
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                AtlasStatusCard(
-                    analysis: analysis,
-                    isAnalyzing: isAnalyzing
-                )
-
-                AtlasSummaryCard(
+            VStack(spacing: 12) {
+                AtlasRecommendationCard(
                     analysis: analysis,
                     folderSuggestion: folderSuggestion
                 )
 
-                AtlasDashboardGrid(
-                    analysis: analysis,
-                    folderSuggestion: folderSuggestion
-                )
-
-                analysisCard
-
-                AtlasLearningCard(
-                    analysis: analysis,
-                    folderSuggestion: folderSuggestion,
-                    onRemember: onRememberSuggestion
+                AtlasQuickFactsCard(
+                    analysis: analysis
                 )
 
                 AtlasRenameCard(
@@ -50,13 +41,40 @@ struct AtlasPanelView: View {
                     onRename: onRename
                 )
 
-                currentFileCard
+                ExpandableAtlasSection(
+                    title: "Analyse und Begründungen",
+                    systemImage: "text.viewfinder",
+                    isExpanded: $analysisExpanded
+                ) {
+                    analysisCard
+                }
+
+                ExpandableAtlasSection(
+                    title: "Atlas lernen lassen",
+                    systemImage: "brain",
+                    isExpanded: $learningExpanded
+                ) {
+                    AtlasLearningCard(
+                        analysis: analysis,
+                        folderSuggestion: folderSuggestion,
+                        onRemember: onRememberSuggestion,
+                        onHelpAtlas: onHelpAtlas
+                    )
+                }
+
+                ExpandableAtlasSection(
+                    title: "Aktuelle Datei",
+                    systemImage: "doc",
+                    isExpanded: $fileExpanded
+                ) {
+                    currentFileCard
+                }
             }
-            .padding(16)
+            .padding(12)
         }
         .frame(
-            minWidth: 360,
-            idealWidth: 430
+            minWidth: 320,
+            idealWidth: 370
         )
         .background(
             Color(nsColor: .controlBackgroundColor)
@@ -67,7 +85,7 @@ struct AtlasPanelView: View {
         AtlasCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label(
-                    "Analyse",
+                    "Dokumentanalyse",
                     systemImage: "text.viewfinder"
                 )
                 .font(.headline)
@@ -93,24 +111,23 @@ struct AtlasPanelView: View {
                 }
 
                 if !extractedText.isEmpty {
-                    DisclosureGroup(
-                        "Erkannten Text anzeigen"
-                    ) {
-                        ScrollView {
-                            Text(extractedText)
-                                .font(.caption)
-                                .textSelection(.enabled)
-                                .frame(
-                                    maxWidth: .infinity,
-                                    alignment: .leading
-                                )
-                        }
-                        .frame(
-                            minHeight: 120,
-                            maxHeight: 220
-                        )
-                        .padding(.top, 8)
+                    Text("Erkannter Text")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    ScrollView {
+                        Text(extractedText)
+                            .font(.caption)
+                            .textSelection(.enabled)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
                     }
+                    .frame(
+                        minHeight: 100,
+                        maxHeight: 200
+                    )
                 }
 
                 if let analysis,
@@ -118,23 +135,23 @@ struct AtlasPanelView: View {
 
                     Divider()
 
-                    DisclosureGroup("Warum?") {
-                        VStack(
-                            alignment: .leading,
-                            spacing: 8
-                        ) {
-                            ForEach(
-                                analysis.reasons,
-                                id: \.self
-                            ) { reason in
-                                Label(
-                                    reason,
-                                    systemImage: "checkmark.circle"
-                                )
-                                .font(.caption)
-                            }
+                    Text("Warum?")
+                        .font(.headline)
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+                        ForEach(
+                            analysis.reasons,
+                            id: \.self
+                        ) { reason in
+                            Label(
+                                reason,
+                                systemImage: "checkmark.circle"
+                            )
+                            .font(.caption)
                         }
-                        .padding(.top, 8)
                     }
                 }
             }
@@ -154,14 +171,79 @@ struct AtlasPanelView: View {
                     .font(.callout)
                     .textSelection(.enabled)
                     .lineLimit(3)
+
+                Text(document.sourceURL.path)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
             }
         }
     }
 }
 
+private struct ExpandableAtlasSection<Content: View>: View {
+
+    let title: String
+    let systemImage: String
+
+    @Binding var isExpanded: Bool
+
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(
+                    .easeInOut(duration: 0.2)
+                ) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(
+                        systemName: isExpanded
+                            ? "chevron.down"
+                            : "chevron.right"
+                    )
+                    .font(.caption)
+                    .frame(width: 12)
+
+                    Label(
+                        title,
+                        systemImage: systemImage
+                    )
+                    .font(.headline)
+
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                content()
+                    .padding(.top, 8)
+                    .transition(
+                        .opacity.combined(
+                            with: .move(edge: .top)
+                        )
+                    )
+            }
+        }
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+    }
+}
+
 #Preview {
     @Previewable @State var filename =
-        "2026-08-03 Rechnung RAISA"
+        "2026-08-04 Rechnung RAISA"
 
     let previewAnalysis = AtlasAnalysis(
         documentType: .invoice,
@@ -172,7 +254,7 @@ struct AtlasPanelView: View {
             "Futtermittel",
             "VzF"
         ],
-        confidence: 0.91,
+        confidence: 0.95,
         reasons: [
             "Dokumentart Rechnung erkannt",
             "Absender RAISA erkannt",
@@ -182,14 +264,13 @@ struct AtlasPanelView: View {
     )
 
     let previewFolderSuggestion = FolderSuggestion(
-        ruleName: "EHA Lieferscheine",
+        ruleName: "Gelernte Zuordnung",
         area: .ehaKG,
         folder: "Lieferscheine",
-        confidence: 0.85,
+        confidence: 0.95,
         reasons: [
-            "Dokumentart Lieferschein passt",
-            "Absender RAISA passt",
-            "Schlüsselwörter: Futtermittel, VzF"
+            "Atlas hat ähnliche Dokumente gefunden",
+            "Firma stimmt überein"
         ]
     )
 
@@ -201,17 +282,19 @@ struct AtlasPanelView: View {
         ),
         filenameDraft: $filename,
         extractedText: "Beispieltext aus dem PDF",
-        textExtractionMessage: "28 Zeichen aus dem PDF gelesen.",
+        textExtractionMessage:
+            "28 Zeichen aus dem PDF gelesen.",
         analysis: previewAnalysis,
         folderSuggestion: previewFolderSuggestion,
         isAnalyzing: false,
         onAnalyzeDocument: {},
         onGenerateSuggestion: {},
         onRememberSuggestion: {},
+        onHelpAtlas: {},
         onRename: {}
     )
     .frame(
-        width: 460,
-        height: 950
+        width: 420,
+        height: 900
     )
 }

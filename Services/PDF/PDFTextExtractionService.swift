@@ -13,23 +13,46 @@ struct PDFTextExtractionService {
                 return "Das PDF konnte nicht geöffnet werden."
 
             case .noTextFound:
-                return "In diesem PDF wurde kein eingebetteter Text gefunden."
+                return "In diesem PDF wurde kein Text erkannt."
             }
         }
     }
 
-    func extractText(from url: URL) throws -> String {
+    private let ocrService = OCRService()
+
+    func extractText(from url: URL) async throws -> String {
         guard let document = PDFDocument(url: url) else {
             throw ExtractionError.documentCouldNotBeOpened
         }
 
-        let text = document.string?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let embeddedText = document.string?
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ) ?? ""
 
-        guard !text.isEmpty else {
+        if embeddedText.count >= 100 {
+            return embeddedText
+        }
+
+        let ocrText = try await ocrService.recognizeText(
+            from: document
+        )
+        .trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        if ocrText.count > embeddedText.count {
+            return ocrText
+        }
+
+        if !embeddedText.isEmpty {
+            return embeddedText
+        }
+
+        guard !ocrText.isEmpty else {
             throw ExtractionError.noTextFound
         }
 
-        return text
+        return ocrText
     }
 }

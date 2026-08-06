@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class InboxViewModel {
 
@@ -113,16 +114,20 @@ final class InboxViewModel {
                 self.analysis(for: document) != nil
             },
             analyze: { document in
-                self.analyzeSilently(document: document)
+                Task {
+                    await self.analyzeSilently(
+                        document: document
+                    )
+                }
             }
         )
     }
 
     private func analyzeSilently(
         document: DocumentRecord
-    ) {
+    ) async {
         do {
-            let text = try pdfTextExtractionService.extractText(
+            let text = try await pdfTextExtractionService.extractText(
                 from: document.sourceURL
             )
 
@@ -142,12 +147,28 @@ final class InboxViewModel {
             folderSuggestionsByURL[document.sourceURL] =
                 newFolderSuggestion
 
+            if analysis == nil {
+                analysis = newAnalysis
+                folderSuggestion = newFolderSuggestion
+            }
+
         } catch {
-            // Reine Bildscans werden später per OCR verarbeitet.
+            // Reine Bildscans oder nicht lesbare PDFs
+            // können später genauer protokolliert werden.
         }
     }
 
     func analyze(document: DocumentRecord) {
+        Task {
+            await analyzeAsync(
+                document: document
+            )
+        }
+    }
+
+    private func analyzeAsync(
+        document: DocumentRecord
+    ) async {
         isAnalyzing = true
 
         defer {
@@ -160,7 +181,7 @@ final class InboxViewModel {
         folderSuggestion = nil
 
         do {
-            let text = try pdfTextExtractionService.extractText(
+            let text = try await pdfTextExtractionService.extractText(
                 from: document.sourceURL
             )
 

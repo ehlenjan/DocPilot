@@ -4,13 +4,16 @@ struct AtlasLearningCard: View {
 
     let analysis: AtlasAnalysis?
     let folderSuggestion: FolderSuggestion?
+
     let onRemember: () -> Void
+    let onHelpAtlas: () -> Void
 
     @State private var didRemember = false
 
     var body: some View {
         AtlasCard {
             VStack(alignment: .leading, spacing: 14) {
+
                 Label(
                     "Atlas lernen lassen",
                     systemImage: "brain.fill"
@@ -28,58 +31,82 @@ struct AtlasLearningCard: View {
                     )
                     .foregroundStyle(.green)
                     .transition(
-                        .opacity.combined(with: .move(edge: .bottom))
+                        .opacity.combined(
+                            with: .move(edge: .bottom)
+                        )
                     )
                 }
 
-                Button {
-                    onRemember()
+                HStack(spacing: 12) {
 
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        didRemember = true
-                    }
-                } label: {
-                    Label(
-                        didRemember
+                    Button {
+                        onRemember()
+
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            didRemember = true
+                        }
+
+                    } label: {
+
+                        Label(
+                            didRemember
                             ? "Zuordnung gemerkt"
                             : "Zuordnung merken",
-                        systemImage: didRemember
+                            systemImage: didRemember
                             ? "checkmark.circle.fill"
                             : "brain"
+                        )
+                        .frame(maxWidth: .infinity)
+
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(
+                        analysis == nil ||
+                        folderSuggestion == nil ||
+                        didRemember
                     )
-                    .frame(maxWidth: .infinity)
+
+                    Button {
+                        onHelpAtlas()
+
+                    } label: {
+
+                        Label(
+                            "Atlas helfen",
+                            systemImage: "pencil.and.list.clipboard"
+                        )
+                        .frame(maxWidth: .infinity)
+
+                    }
+                    .buttonStyle(.borderedProminent)
+
                 }
-                .buttonStyle(.bordered)
-                .disabled(
-                    analysis == nil ||
-                    folderSuggestion == nil ||
-                    didRemember
-                )
             }
         }
     }
 
     private var explanationText: String {
+
         guard
             let analysis,
             let folderSuggestion
         else {
+
             return """
-            Sobald eine Analyse und ein Zielordner vorliegen, \
-            kannst du Atlas diese Zuordnung dauerhaft merken lassen.
+            Sobald eine Analyse und ein Zielordner vorliegen, kannst du Atlas diese Zuordnung dauerhaft merken oder fehlende Informationen ergänzen.
             """
         }
 
         let sender = analysis.sender ?? "dieser Dokumentart"
 
         return """
-        Atlas merkt sich, dass Dokumente von \(sender) \
-        typischerweise nach \(folderSuggestion.displayPath) gehören.
+        Atlas merkt sich, dass Dokumente von \(sender) typischerweise nach \(folderSuggestion.displayPath) gehören.
         """
     }
 }
 
 #Preview {
+
     AtlasLearningCard(
         analysis: AtlasAnalysis(
             documentType: .invoice,
@@ -101,7 +128,8 @@ struct AtlasLearningCard: View {
                 "Absender RAISA passt"
             ]
         ),
-        onRemember: {}
+        onRemember: {},
+        onHelpAtlas: {}
     )
     .padding()
     .frame(width: 430)

@@ -2,10 +2,10 @@ import Foundation
 import Observation
 
 @Observable
-final class InboxFolderStore {
+final class ArchiveFolderStore {
 
     private let bookmarkStore = FolderBookmarkStore(
-        key: "docpilot.inboxFolderBookmark"
+        key: "docpilot.archiveFolderBookmark"
     )
 
     private(set) var folderURL: URL?
@@ -33,7 +33,7 @@ final class InboxFolderStore {
             try bookmarkStore.save(url: url)
         } catch {
             errorMessage =
-                "Der Ordner ist für diese Sitzung geöffnet, konnte aber nicht dauerhaft gespeichert werden: \(error.localizedDescription)"
+                "Der Archivordner ist für diese Sitzung geöffnet, konnte aber nicht dauerhaft gespeichert werden: \(error.localizedDescription)"
         }
     }
 
@@ -60,7 +60,7 @@ final class InboxFolderStore {
         } catch {
             folderURL = nil
             errorMessage =
-                "Der Eingangsordner konnte nicht wiederhergestellt werden: \(error.localizedDescription)"
+                "Der Archivordner konnte nicht wiederhergestellt werden: \(error.localizedDescription)"
         }
     }
 
@@ -72,7 +72,7 @@ final class InboxFolderStore {
 
         if !isAccessingFolder {
             errorMessage =
-                "Auf den gespeicherten Eingangsordner konnte nicht zugegriffen werden."
+                "Auf den gespeicherten Archivordner konnte nicht zugegriffen werden."
         }
     }
 
