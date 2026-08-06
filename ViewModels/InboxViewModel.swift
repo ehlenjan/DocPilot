@@ -10,6 +10,9 @@ final class InboxViewModel {
     private let pdfTextExtractionService = PDFTextExtractionService()
     private let atlasAnalyzer = AtlasAnalyzer()
     private let autoAnalysisService = AutoAnalysisService()
+    private let archiveFolderStore = ArchiveFolderStore()
+    private let documentMoveService = DocumentMoveService()
+    private let archiveScanner = ArchiveScanner()
 
     private let folderSuggestionEngine: FolderSuggestionEngine = {
         let knowledgeBase: KnowledgeBase
@@ -43,6 +46,7 @@ final class InboxViewModel {
     var folderSuggestion: FolderSuggestion?
 
     var isAnalyzing = false
+    var isArchiving = false
 
     private var analysesByURL: [URL: AtlasAnalysis] = [:]
     private var folderSuggestionsByURL: [URL: FolderSuggestion] = [:]
@@ -353,6 +357,73 @@ final class InboxViewModel {
         }
     }
 
+    func archive(
+        document: DocumentRecord
+    ) -> Bool {
+        errorMessage = nil
+        isArchiving = true
+
+        defer {
+            isArchiving = false
+        }
+
+        let suggestion =
+            folderSuggestionsByURL[document.sourceURL]
+            ?? folderSuggestion
+
+        guard let suggestion else {
+            errorMessage =
+                "Es ist noch kein Zielordner vorhanden."
+            return false
+        }
+
+        guard let archiveRootURL =
+            archiveFolderStore.folderURL
+        else {
+            errorMessage =
+                "Es wurde noch kein Archivordner ausgewählt."
+            return false
+        }
+
+        do {
+            let rootNode = try archiveScanner.scan(
+                rootURL: archiveRootURL
+            )
+
+            guard let targetNode = findArchiveNode(
+                in: rootNode,
+                area: suggestion.area,
+                folder: suggestion.folder
+            ) else {
+                errorMessage =
+                    "Der vorgeschlagene Zielordner \(suggestion.displayPath) wurde im Archiv nicht gefunden."
+                return false
+            }
+
+            _ = try documentMoveService.move(
+                document: document,
+                to: targetNode
+            )
+
+            analysesByURL.removeValue(
+                forKey: document.sourceURL
+            )
+
+            folderSuggestionsByURL.removeValue(
+                forKey: document.sourceURL
+            )
+
+            loadDocuments()
+            clearAnalysis()
+
+            return true
+
+        } catch {
+            errorMessage =
+                error.localizedDescription
+            return false
+        }
+    }
     func removeFolder() {
         folderStore.removeFolder()
 
@@ -363,6 +434,82 @@ final class InboxViewModel {
         clearAnalysis()
 
         errorMessage = nil
+    }
+    private func findArchiveNode(
+        in node: ArchiveNode,
+        area: ArchiveArea,
+        folder: String
+    ) -> ArchiveNode? {
+
+        let normalizedArea = normalize(area.rawValue)
+        let normalizedFolder = normalize(folder)
+
+        for areaNode in node.children {
+
+            guard normalize(areaNode.name) == normalizedArea else {
+                continue
+            }
+
+            if normalize(areaNode.name) == normalizedFolder {
+                return areaNode
+            }
+
+            if let folderNode = areaNode.children.first(
+                where: {
+                    normalize($0.name) == normalizedFolder
+                }
+            ) {
+                return folderNode
+            }
+
+            if let nested = findNode(
+                named: normalizedFolder,
+                in: areaNode
+            ) {
+                return nested
+            }
+        }
+
+        return nil
+    }
+
+    private func findNode(
+        named normalizedName: String,
+        in node: ArchiveNode
+    ) -> ArchiveNode? {
+
+        for child in node.children {
+
+            if normalize(child.name) == normalizedName {
+                return child
+            }
+
+            if let nested = findNode(
+                named: normalizedName,
+                in: child
+            ) {
+                return nested
+            }
+        }
+
+        return nil
+    }
+
+    private func normalize(
+        _ value: String
+    ) -> String {
+
+        value
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .folding(
+                options: [
+                    .caseInsensitive,
+                    .diacriticInsensitive
+                ],
+                locale: Locale(identifier: "de_DE")
+            )
     }
 
     private func buildFilenameSuggestion(

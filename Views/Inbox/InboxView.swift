@@ -34,8 +34,7 @@ struct InboxView: View {
         ) {
             AtlasLearningSheet(
                 currentAnalysis: viewModel.analysis,
-                currentFolderSuggestion:
-                    viewModel.folderSuggestion,
+                currentFolderSuggestion: viewModel.folderSuggestion,
                 onCancel: {
                     isShowingAtlasHelp = false
                 },
@@ -58,17 +57,15 @@ struct InboxView: View {
                         ]
                     )
 
-                    let correctedDestination =
-                        FolderSuggestion(
-                            ruleName:
-                                "Manuell gelernte Zuordnung",
-                            area: archiveArea,
-                            folder: folder,
-                            confidence: 1.0,
-                            reasons: [
-                                "Zielordner wurde vom Benutzer bestätigt"
-                            ]
-                        )
+                    let correctedDestination = FolderSuggestion(
+                        ruleName: "Manuell gelernte Zuordnung",
+                        area: archiveArea,
+                        folder: folder,
+                        confidence: 1.0,
+                        reasons: [
+                            "Zielordner wurde vom Benutzer bestätigt"
+                        ]
+                    )
 
                     LearningEngine().remember(
                         analysis: correctedAnalysis,
@@ -115,8 +112,7 @@ struct InboxView: View {
             if let errorMessage = viewModel.errorMessage {
                 ContentUnavailableView(
                     "Aktion fehlgeschlagen",
-                    systemImage:
-                        "exclamationmark.triangle",
+                    systemImage: "exclamationmark.triangle",
                     description: Text(errorMessage)
                 )
             } else if viewModel.documents.isEmpty {
@@ -153,8 +149,7 @@ struct InboxView: View {
         } else {
             EmptySelectionView(
                 title: "Kein Dokument ausgewählt",
-                systemImage:
-                    "doc.text.magnifyingglass",
+                systemImage: "doc.text.magnifyingglass",
                 description:
                     "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
             )
@@ -168,15 +163,14 @@ struct InboxView: View {
             AtlasPanelView(
                 document: document,
                 filenameDraft: $filenameDraft,
-                extractedText:
-                    viewModel.extractedText,
+                extractedText: viewModel.extractedText,
                 textExtractionMessage:
                     viewModel.textExtractionMessage,
                 analysis: viewModel.analysis,
                 folderSuggestion:
                     viewModel.folderSuggestion,
-                isAnalyzing:
-                    viewModel.isAnalyzing,
+                isAnalyzing: viewModel.isAnalyzing,
+                isArchiving: viewModel.isArchiving,
                 onAnalyzeDocument: {
                     viewModel.analyze(
                         document: document
@@ -189,14 +183,21 @@ struct InboxView: View {
                         )
                 },
                 onRememberSuggestion: {
-                    viewModel
-                        .rememberCurrentSuggestion()
+                    viewModel.rememberCurrentSuggestion()
                 },
                 onHelpAtlas: {
                     isShowingAtlasHelp = true
                 },
                 onRename: {
                     renameSelectedDocument()
+                },
+                onArchive: {
+                    if viewModel.archive(
+                        document: document
+                    ) {
+                        selectedDocument = nil
+                        filenameDraft = ""
+                    }
                 }
             )
             .frame(
@@ -206,8 +207,7 @@ struct InboxView: View {
         } else {
             EmptySelectionView(
                 title: "Atlas wartet",
-                systemImage:
-                    "brain.head.profile",
+                systemImage: "brain.head.profile",
                 description:
                     "Wähle ein Dokument aus, damit Atlas es analysieren kann."
             )
@@ -223,9 +223,7 @@ struct InboxView: View {
     ) {
         switch result {
         case .success(let urls):
-            guard let selectedFolder =
-                urls.first
-            else {
+            guard let selectedFolder = urls.first else {
                 return
             }
 
@@ -257,8 +255,7 @@ struct InboxView: View {
                 }
             ) {
 
-            selectedDocument =
-                refreshedDocument
+            selectedDocument = refreshedDocument
 
             viewModel.selectAnalysis(
                 for: refreshedDocument
@@ -272,9 +269,7 @@ struct InboxView: View {
     }
 
     private func renameSelectedDocument() {
-        guard let document =
-            selectedDocument
-        else {
+        guard let document = selectedDocument else {
             return
         }
 
@@ -287,8 +282,7 @@ struct InboxView: View {
             return
         }
 
-        selectedDocument =
-            renamedDocument
+        selectedDocument = renamedDocument
 
         filenameDraft =
             renamedDocument.sourceURL

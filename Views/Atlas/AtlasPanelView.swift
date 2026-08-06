@@ -15,13 +15,16 @@ struct AtlasPanelView: View {
 
     let analysis: AtlasAnalysis?
     let folderSuggestion: FolderSuggestion?
+
     let isAnalyzing: Bool
+    let isArchiving: Bool
 
     let onAnalyzeDocument: () -> Void
     let onGenerateSuggestion: () -> Void
     let onRememberSuggestion: () -> Void
     let onHelpAtlas: () -> Void
     let onRename: () -> Void
+    let onArchive: () -> Void
 
     var body: some View {
         ScrollView {
@@ -37,8 +40,11 @@ struct AtlasPanelView: View {
 
                 AtlasRenameCard(
                     filenameDraft: $filenameDraft,
+                    isArchiving: isArchiving,
+                    canArchive: folderSuggestion != nil,
                     onGenerateSuggestion: onGenerateSuggestion,
-                    onRename: onRename
+                    onRename: onRename,
+                    onArchive: onArchive
                 )
 
                 ExpandableAtlasSection(
@@ -83,7 +89,10 @@ struct AtlasPanelView: View {
 
     private var analysisCard: some View {
         AtlasCard {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(
+                alignment: .leading,
+                spacing: 12
+            ) {
                 Label(
                     "Dokumentanalyse",
                     systemImage: "text.viewfinder"
@@ -102,7 +111,10 @@ struct AtlasPanelView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(isAnalyzing)
+                .disabled(
+                    isAnalyzing ||
+                    isArchiving
+                )
 
                 if let textExtractionMessage {
                     Text(textExtractionMessage)
@@ -160,7 +172,10 @@ struct AtlasPanelView: View {
 
     private var currentFileCard: some View {
         AtlasCard {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(
+                alignment: .leading,
+                spacing: 10
+            ) {
                 Label(
                     "Aktuelle Datei",
                     systemImage: "doc"
@@ -183,7 +198,9 @@ struct AtlasPanelView: View {
     }
 }
 
-private struct ExpandableAtlasSection<Content: View>: View {
+private struct ExpandableAtlasSection<
+    Content: View
+>: View {
 
     let title: String
     let systemImage: String
@@ -243,7 +260,7 @@ private struct ExpandableAtlasSection<Content: View>: View {
 
 #Preview {
     @Previewable @State var filename =
-        "2026-08-04 Rechnung RAISA"
+        "2026-08-06 Rechnung RAISA"
 
     let previewAnalysis = AtlasAnalysis(
         documentType: .invoice,
@@ -263,16 +280,17 @@ private struct ExpandableAtlasSection<Content: View>: View {
         ]
     )
 
-    let previewFolderSuggestion = FolderSuggestion(
-        ruleName: "Gelernte Zuordnung",
-        area: .ehaKG,
-        folder: "Lieferscheine",
-        confidence: 0.95,
-        reasons: [
-            "Atlas hat ähnliche Dokumente gefunden",
-            "Firma stimmt überein"
-        ]
-    )
+    let previewFolderSuggestion =
+        FolderSuggestion(
+            ruleName: "Gelernte Zuordnung",
+            area: .ehaKG,
+            folder: "Lieferscheine",
+            confidence: 0.95,
+            reasons: [
+                "Atlas hat ähnliche Dokumente gefunden",
+                "Firma stimmt überein"
+            ]
+        )
 
     AtlasPanelView(
         document: DocumentRecord(
@@ -281,17 +299,21 @@ private struct ExpandableAtlasSection<Content: View>: View {
             )
         ),
         filenameDraft: $filename,
-        extractedText: "Beispieltext aus dem PDF",
+        extractedText:
+            "Beispieltext aus dem PDF",
         textExtractionMessage:
             "28 Zeichen aus dem PDF gelesen.",
         analysis: previewAnalysis,
-        folderSuggestion: previewFolderSuggestion,
+        folderSuggestion:
+            previewFolderSuggestion,
         isAnalyzing: false,
+        isArchiving: false,
         onAnalyzeDocument: {},
         onGenerateSuggestion: {},
         onRememberSuggestion: {},
         onHelpAtlas: {},
-        onRename: {}
+        onRename: {},
+        onArchive: {}
     )
     .frame(
         width: 420,

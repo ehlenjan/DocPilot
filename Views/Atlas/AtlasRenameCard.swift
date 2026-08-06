@@ -4,69 +4,81 @@ struct AtlasRenameCard: View {
 
     @Binding var filenameDraft: String
 
+    let isArchiving: Bool
+    let canArchive: Bool
+
     let onGenerateSuggestion: () -> Void
     let onRename: () -> Void
+    let onArchive: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(
-                "Dateiname",
-                systemImage: "pencil"
-            )
-            .font(.headline)
+        AtlasCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Label(
+                    "Dateiname",
+                    systemImage: "pencil"
+                )
+                .font(.headline)
 
-            TextField(
-                "Neuer Dateiname",
-                text: $filenameDraft
-            )
-            .textFieldStyle(.roundedBorder)
+                TextField(
+                    "Neuer Dateiname",
+                    text: $filenameDraft
+                )
+                .textFieldStyle(.roundedBorder)
 
-            HStack {
-                Text(".pdf")
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(".pdf")
+                        .foregroundStyle(.secondary)
 
-                Spacer()
+                    Spacer()
 
-                Button(
-                    action: onGenerateSuggestion
-                ) {
-                    Label(
-                        "Vorschlag",
-                        systemImage: "sparkles"
+                    Button(
+                        action: onGenerateSuggestion
+                    ) {
+                        Label(
+                            "Vorschlag",
+                            systemImage: "sparkles"
+                        )
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button(
+                        action: onRename
+                    ) {
+                        Label(
+                            "Umbenennen",
+                            systemImage: "checkmark.circle"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .keyboardShortcut(
+                        .return,
+                        modifiers: [.command]
+                    )
+                    .disabled(cleanFilename.isEmpty)
+
+                    Button(
+                        action: onArchive
+                    ) {
+                        Label(
+                            isArchiving
+                                ? "Archiviert …"
+                                : "Archivieren",
+                            systemImage: isArchiving
+                                ? "hourglass"
+                                : "archivebox.fill"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                        !canArchive ||
+                        isArchiving
                     )
                 }
             }
-
-            Button(
-                action: onRename
-            ) {
-                Label(
-                    "Datei umbenennen",
-                    systemImage: "checkmark.circle.fill"
-                )
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(
-                .return,
-                modifiers: [.command]
-            )
-            .disabled(cleanFilename.isEmpty)
-        }
-        .padding(16)
-        .background(.regularMaterial)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 16,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: 16,
-                style: .continuous
-            )
-            .stroke(.quaternary)
         }
     }
 
@@ -83,8 +95,11 @@ struct AtlasRenameCard: View {
 
     AtlasRenameCard(
         filenameDraft: $filename,
+        isArchiving: false,
+        canArchive: true,
         onGenerateSuggestion: {},
-        onRename: {}
+        onRename: {},
+        onArchive: {}
     )
     .padding()
     .frame(width: 420)
