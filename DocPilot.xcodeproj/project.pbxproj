@@ -64,6 +64,8 @@
 		303B7ABC30248E25001D99ED /* FolderBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */; };
 		303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ABE302491CA001D99ED /* ArchiveScanner.swift */; };
 		303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC0302491D9001D99ED /* ArchiveNode.swift */; };
+		303B7AC330249433001D99ED /* ArchiveViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC230249433001D99ED /* ArchiveViewModel.swift */; };
+		303B7AC630249534001D99ED /* ArchiveExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC530249534001D99ED /* ArchiveExplorerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -125,6 +127,8 @@
 		303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderBookmarkStore.swift; sourceTree = "<group>"; };
 		303B7ABE302491CA001D99ED /* ArchiveScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveScanner.swift; sourceTree = "<group>"; };
 		303B7AC0302491D9001D99ED /* ArchiveNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveNode.swift; sourceTree = "<group>"; };
+		303B7AC230249433001D99ED /* ArchiveViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveViewModel.swift; sourceTree = "<group>"; };
+		303B7AC530249534001D99ED /* ArchiveExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveExplorerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -155,7 +159,7 @@
 				303B7A37301F7278001D99ED /* ViewModels */,
 				303B7A2B301F69C8001D99ED /* Models */,
 				303B7A2C301F69D8001D99ED /* Services */,
-				303B7A2D301F69E3001D99ED /* Brain */,
+				303B7A2D301F69E3001D99ED /* Atlas */,
 				303B7A2E301F69EF001D99ED /* Resources */,
 				303B7A1D301F59E8001D99ED /* DocPilot */,
 				303B7A1C301F59E8001D99ED /* Products */,
@@ -181,6 +185,7 @@
 		303B7A2A301F69BD001D99ED /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				303B7AC43024951D001D99ED /* Archive */,
 				303B7AB43021D5AB001D99ED /* Learning */,
 				303B7AA4302116BA001D99ED /* Settings */,
 				303B7A603020EC0C001D99ED /* Atlas */,
@@ -213,7 +218,7 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		303B7A2D301F69E3001D99ED /* Brain */ = {
+		303B7A2D301F69E3001D99ED /* Atlas */ = {
 			isa = PBXGroup;
 			children = (
 				303B7AB13021D08A001D99ED /* OCR */,
@@ -222,7 +227,7 @@
 				303B7A653020ECFC001D99ED /* Knowledge */,
 				303B7A663020ED09001D99ED /* Suggestions */,
 			);
-			path = Brain;
+			path = Atlas;
 			sourceTree = "<group>";
 		};
 		303B7A2E301F69EF001D99ED /* Resources */ = {
@@ -238,6 +243,7 @@
 			children = (
 				303B7A38301F72DB001D99ED /* InboxViewModel.swift */,
 				303B7A883020F7F0001D99ED /* InboxViewModel+Learning.swift */,
+				303B7AC230249433001D99ED /* ArchiveViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -403,6 +409,14 @@
 			path = Archive;
 			sourceTree = "<group>";
 		};
+		303B7AC43024951D001D99ED /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				303B7AC530249534001D99ED /* ArchiveExplorerView.swift */,
+			);
+			path = Archive;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -510,6 +524,7 @@
 				303B7A873020F797001D99ED /* AtlasLearningCard.swift in Sources */,
 				303B7A7A3020F22D001D99ED /* AtlasQuickFactsCard.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
+				303B7AC330249433001D99ED /* ArchiveViewModel.swift in Sources */,
 				303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
 				303B7A7F3020F55F001D99ED /* LearningEntry.swift in Sources */,
@@ -534,6 +549,7 @@
 				303B7AAE30211A72001D99ED /* LearningMatcher.swift in Sources */,
 				303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */,
 				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,
+				303B7AC630249534001D99ED /* ArchiveExplorerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
