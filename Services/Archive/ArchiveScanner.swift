@@ -1,6 +1,6 @@
 import Foundation
 
-struct ArchiveScanner {
+struct ArchiveScanner: Sendable {
 
     enum ScanError: LocalizedError {
         case folderDoesNotExist
@@ -8,7 +8,6 @@ struct ArchiveScanner {
 
         var errorDescription: String? {
             switch self {
-
             case .folderDoesNotExist:
                 return "Der Archivordner existiert nicht."
 
@@ -18,53 +17,98 @@ struct ArchiveScanner {
         }
     }
 
-    func scan(rootURL: URL) throws -> ArchiveNode {
+    // MARK: - Root
 
-        guard FileManager.default.fileExists(atPath: rootURL.path) else {
+    func scanRoot(
+        rootURL: URL
+    ) throws -> ArchiveNode {
+
+        guard FileManager.default.fileExists(
+            atPath: rootURL.path
+        ) else {
             throw ScanError.folderDoesNotExist
         }
 
-        return try scanNode(at: rootURL)
+        let children = try loadChildren(
+            of: rootURL
+        )
+
+        return ArchiveNode(
+            name: rootURL.lastPathComponent,
+            url: rootURL,
+            children: children
+        )
     }
 
-    private func scanNode(
-        at url: URL
+    // MARK: - Compatibility
+
+    func scan(
+        rootURL: URL
     ) throws -> ArchiveNode {
+
+        try scanRoot(
+            rootURL: rootURL
+        )
+    }
+
+    // MARK: - Children
+
+    func loadChildren(
+        of folderURL: URL
+    ) throws -> [ArchiveNode] {
+
+        var isDirectory: ObjCBool = false
+
+        guard FileManager.default.fileExists(
+            atPath: folderURL.path,
+            isDirectory: &isDirectory
+        ),
+        isDirectory.boolValue
+        else {
+            throw ScanError.folderDoesNotExist
+        }
 
         let resourceKeys: Set<URLResourceKey> = [
             .isDirectoryKey
         ]
 
-        let urls = try FileManager.default.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: Array(resourceKeys),
-            options: [
-                .skipsHiddenFiles
-            ]
-        )
+        let urls: [URL]
 
-        let childFolders = try urls
-            .filter {
+        do {
+            urls = try FileManager.default.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: Array(resourceKeys),
+                options: [
+                    .skipsHiddenFiles
+                ]
+            )
+        } catch {
+            throw ScanError.couldNotReadFolder(
+                folderURL
+            )
+        }
 
-                let values = try? $0.resourceValues(
+        return urls
+            .filter { url in
+                guard let values = try? url.resourceValues(
                     forKeys: resourceKeys
-                )
+                ) else {
+                    return false
+                }
 
-                return values?.isDirectory == true
+                return values.isDirectory == true
             }
             .sorted {
                 $0.lastPathComponent.localizedStandardCompare(
                     $1.lastPathComponent
                 ) == .orderedAscending
             }
-            .map {
-                try scanNode(at: $0)
+            .map { url in
+                ArchiveNode(
+                    name: url.lastPathComponent,
+                    url: url,
+                    children: []
+                )
             }
-
-        return ArchiveNode(
-            name: url.lastPathComponent,
-            url: url,
-            children: childFolders
-        )
     }
 }

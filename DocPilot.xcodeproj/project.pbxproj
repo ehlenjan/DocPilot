@@ -69,6 +69,8 @@
 		303B7AC83024968E001D99ED /* ArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC73024968E001D99ED /* ArchiveView.swift */; };
 		303B7ACA30249A84001D99ED /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC930249A84001D99ED /* ArchiveService.swift */; };
 		303B7ACC30249B62001D99ED /* DocumentMoveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACB30249B62001D99ED /* DocumentMoveService.swift */; };
+		303B7ACE3025147B001D99ED /* ArchiveLocationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACD3025147B001D99ED /* ArchiveLocationsStore.swift */; };
+		303B7AD03025153A001D99ED /* ArchiveLocationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -135,6 +137,8 @@
 		303B7AC73024968E001D99ED /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		303B7AC930249A84001D99ED /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		303B7ACB30249B62001D99ED /* DocumentMoveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentMoveService.swift; sourceTree = "<group>"; };
+		303B7ACD3025147B001D99ED /* ArchiveLocationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveLocationsStore.swift; sourceTree = "<group>"; };
+		303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveLocationsSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -348,6 +352,7 @@
 				303B7AB930247633001D99ED /* ArchiveFolderStore.swift */,
 				303B7ABB30248E25001D99ED /* FolderBookmarkStore.swift */,
 				303B7ACB30249B62001D99ED /* DocumentMoveService.swift */,
+				303B7ACD3025147B001D99ED /* ArchiveLocationsStore.swift */,
 			);
 			path = Files;
 			sourceTree = "<group>";
@@ -388,6 +393,7 @@
 				303B7AA730211774001D99ED /* SettingsView.swift */,
 				303B7AA93021193A001D99ED /* AtlasSettingsView.swift */,
 				303B7AAB302119E3001D99ED /* LearningSettingsView.swift */,
+				303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -503,6 +509,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				303B7A3F301F7A94001D99ED /* AtlasPanelView.swift in Sources */,
+				303B7AD03025153A001D99ED /* ArchiveLocationsSettingsView.swift in Sources */,
 				303B7AA830211774001D99ED /* SettingsView.swift in Sources */,
 				303B7A5F301FD7D4001D99ED /* FolderSuggestionEngine.swift in Sources */,
 				303B7A34301F6DD7001D99ED /* InboxFolderStore.swift in Sources */,
@@ -539,6 +546,7 @@
 				303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
 				303B7A7F3020F55F001D99ED /* LearningEntry.swift in Sources */,
+				303B7ACE3025147B001D99ED /* ArchiveLocationsStore.swift in Sources */,
 				303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */,
 				303B7A853020F74A001D99ED /* LearningEngine.swift in Sources */,
 				303B7A703020EFAE001D99ED /* AtlasFolderCard.swift in Sources */,

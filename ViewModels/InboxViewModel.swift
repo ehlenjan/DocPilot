@@ -10,7 +10,7 @@ final class InboxViewModel {
     private let pdfTextExtractionService = PDFTextExtractionService()
     private let atlasAnalyzer = AtlasAnalyzer()
     private let autoAnalysisService = AutoAnalysisService()
-    private let archiveFolderStore = ArchiveFolderStore()
+    private let archiveLocationsStore = ArchiveLocationsStore()
     private let documentMoveService = DocumentMoveService()
     private let archiveScanner = ArchiveScanner()
 
@@ -378,10 +378,12 @@ final class InboxViewModel {
         }
 
         guard let archiveRootURL =
-            archiveFolderStore.folderURL
+            archiveLocationsStore.folderURL(
+                for: suggestion.area
+            )
         else {
             errorMessage =
-                "Es wurde noch kein Archivordner ausgewählt."
+                "Für \(suggestion.area.rawValue) wurde noch kein Archivort ausgewählt."
             return false
         }
 

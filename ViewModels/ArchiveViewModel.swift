@@ -1,32 +1,137 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class ArchiveViewModel {
 
-    private let archiveFolderStore = ArchiveFolderStore()
+    private let archiveLocationsStore = ArchiveLocationsStore()
     private let scanner = ArchiveScanner()
 
     var rootNode: ArchiveNode?
     var errorMessage: String?
 
-    func reload() {
+    var isLoading = false
+    var loadingURLs: Set<URL> = []
 
+    func reload() {
         errorMessage = nil
         rootNode = nil
+        isLoading = true
 
-        guard let folder = archiveFolderStore.folderURL else {
-            errorMessage = "Kein Archivordner ausgewählt."
+        guard let folder =
+            archiveLocationsStore.folderURL(for: .business)
+        else {
+            errorMessage = "Für Betrieb wurde noch kein Archivort ausgewählt."
+            isLoading = false
             return
         }
 
-        do {
-            rootNode = try scanner.scan(
-                rootURL: folder
-            )
+        Task {
+            do {
+                let scannedRoot = try await Task.detached(
+                    priority: .userInitiated
+                ) {
+                    try self.scanner.scanRoot(
+                        rootURL: folder
+                    )
+                }
+                .value
 
-        } catch {
-            errorMessage = error.localizedDescription
+                rootNode = scannedRoot
+
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+
+            isLoading = false
         }
+    }
+
+    func loadChildren(
+        for node: ArchiveNode
+    ) {
+        guard !loadingURLs.contains(node.url) else {
+            return
+        }
+
+        loadingURLs.insert(node.url)
+
+        Task {
+            do {
+                let children = try await Task.detached(
+                    priority: .userInitiated
+                ) {
+                    try self.scanner.loadChildren(
+                        of: node.url
+                    )
+                }
+                .value
+
+                updateNode(
+                    url: node.url,
+                    children: children
+                )
+
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+
+            loadingURLs.remove(node.url)
+        }
+    }
+
+    func isLoadingChildren(
+        for node: ArchiveNode
+    ) -> Bool {
+        loadingURLs.contains(node.url)
+    }
+
+    private func updateNode(
+        url: URL,
+        children: [ArchiveNode]
+    ) {
+        guard var rootNode else {
+            return
+        }
+
+        if rootNode.url == url {
+            rootNode.children = children
+            self.rootNode = rootNode
+            return
+        }
+
+        guard updateChildren(
+            in: &rootNode,
+            targetURL: url,
+            children: children
+        ) else {
+            return
+        }
+
+        self.rootNode = rootNode
+    }
+
+    private func updateChildren(
+        in node: inout ArchiveNode,
+        targetURL: URL,
+        children: [ArchiveNode]
+    ) -> Bool {
+        for index in node.children.indices {
+            if node.children[index].url == targetURL {
+                node.children[index].children = children
+                return true
+            }
+
+            if updateChildren(
+                in: &node.children[index],
+                targetURL: targetURL,
+                children: children
+            ) {
+                return true
+            }
+        }
+
+        return false
     }
 }

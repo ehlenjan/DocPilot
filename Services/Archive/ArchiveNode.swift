@@ -1,6 +1,6 @@
 import Foundation
 
-struct ArchiveNode: Identifiable, Hashable {
+struct ArchiveNode: Identifiable, Hashable, Sendable {
 
     let id = UUID()
 

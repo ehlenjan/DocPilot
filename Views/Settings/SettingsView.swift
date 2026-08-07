@@ -41,6 +41,15 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    ArchiveLocationsSettingsView()
+                } label: {
+                    Label(
+                        "Archivorte",
+                        systemImage: "externaldrive.connected.to.line.below"
+                    )
+                }
+
+                NavigationLink {
                     Text("OCR")
                         .navigationTitle("OCR")
                 } label: {
@@ -61,6 +70,10 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Einstellungen")
+            .navigationSplitViewColumnWidth(
+                min: 180,
+                ideal: 210
+            )
         } detail: {
             GeneralSettingsView(
                 settingsManager: settingsManager
@@ -71,4 +84,8 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .frame(
+            width: 820,
+            height: 580
+        )
 }
