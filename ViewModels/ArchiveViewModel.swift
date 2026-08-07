@@ -5,7 +5,7 @@ import Observation
 @Observable
 final class ArchiveViewModel {
 
-    private let archiveLocationsStore = ArchiveLocationsStore()
+    private let archiveWorkspaceStore = ArchiveWorkspaceStore()
     private let scanner = ArchiveScanner()
 
     var rootNode: ArchiveNode?
@@ -19,10 +19,21 @@ final class ArchiveViewModel {
         rootNode = nil
         isLoading = true
 
-        guard let folder =
-            archiveLocationsStore.folderURL(for: .business)
+        guard let workspace =
+            archiveWorkspaceStore.workspaces.first
         else {
-            errorMessage = "Für Betrieb wurde noch kein Archivort ausgewählt."
+            errorMessage = "Es wurde noch kein Arbeitsbereich angelegt."
+            isLoading = false
+            return
+        }
+
+        guard let folder =
+            archiveWorkspaceStore.folderURL(
+                for: workspace
+            )
+        else {
+            errorMessage =
+                "Für \(workspace.name) wurde noch kein Archivort ausgewählt."
             isLoading = false
             return
         }

@@ -71,6 +71,8 @@
 		303B7ACC30249B62001D99ED /* DocumentMoveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACB30249B62001D99ED /* DocumentMoveService.swift */; };
 		303B7ACE3025147B001D99ED /* ArchiveLocationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACD3025147B001D99ED /* ArchiveLocationsStore.swift */; };
 		303B7AD03025153A001D99ED /* ArchiveLocationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */; };
+		303B7AD23026932D001D99ED /* ArchiveWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AD13026932D001D99ED /* ArchiveWorkspace.swift */; };
+		303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -139,6 +141,8 @@
 		303B7ACB30249B62001D99ED /* DocumentMoveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentMoveService.swift; sourceTree = "<group>"; };
 		303B7ACD3025147B001D99ED /* ArchiveLocationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveLocationsStore.swift; sourceTree = "<group>"; };
 		303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveLocationsSettingsView.swift; sourceTree = "<group>"; };
+		303B7AD13026932D001D99ED /* ArchiveWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkspace.swift; sourceTree = "<group>"; };
+		303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkspaceStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -254,6 +258,7 @@
 				303B7A38301F72DB001D99ED /* InboxViewModel.swift */,
 				303B7A883020F7F0001D99ED /* InboxViewModel+Learning.swift */,
 				303B7AC230249433001D99ED /* ArchiveViewModel.swift */,
+				303B7AD13026932D001D99ED /* ArchiveWorkspace.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -419,6 +424,7 @@
 				303B7ABE302491CA001D99ED /* ArchiveScanner.swift */,
 				303B7AC0302491D9001D99ED /* ArchiveNode.swift */,
 				303B7AC930249A84001D99ED /* ArchiveService.swift */,
+				303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */,
 			);
 			path = Archive;
 			sourceTree = "<group>";
@@ -560,8 +566,10 @@
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
+				303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */,
 				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
 				303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */,
+				303B7AD23026932D001D99ED /* ArchiveWorkspace.swift in Sources */,
 				303B7A9D302111A1001D99ED /* SettingsManager.swift in Sources */,
 				303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */,
 				303B7AB830246FB4001D99ED /* ArchiveFolder.swift in Sources */,

@@ -10,7 +10,7 @@ final class InboxViewModel {
     private let pdfTextExtractionService = PDFTextExtractionService()
     private let atlasAnalyzer = AtlasAnalyzer()
     private let autoAnalysisService = AutoAnalysisService()
-    private let archiveLocationsStore = ArchiveLocationsStore()
+    private let archiveWorkspaceStore = ArchiveWorkspaceStore()
     private let documentMoveService = DocumentMoveService()
     private let archiveScanner = ArchiveScanner()
 
@@ -377,13 +377,23 @@ final class InboxViewModel {
             return false
         }
 
-        guard let archiveRootURL =
-            archiveLocationsStore.folderURL(
-                for: suggestion.area
+        guard let workspace =
+            archiveWorkspaceStore.workspace(
+                matching: suggestion.area
             )
         else {
             errorMessage =
-                "Für \(suggestion.area.rawValue) wurde noch kein Archivort ausgewählt."
+                "Für \(suggestion.area.rawValue) wurde kein Arbeitsbereich gefunden."
+            return false
+        }
+
+        guard let archiveRootURL =
+            archiveWorkspaceStore.folderURL(
+                for: workspace
+            )
+        else {
+            errorMessage =
+                "Für \(workspace.name) wurde noch kein Archivort ausgewählt."
             return false
         }
 
