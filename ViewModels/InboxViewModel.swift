@@ -243,6 +243,7 @@ final class InboxViewModel {
             ] = newFolderSuggestion
 
             if analysis == nil {
+
                 analysis =
                     newAnalysis
 
@@ -363,7 +364,8 @@ final class InboxViewModel {
             DocumentRecord?
     ) {
 
-        manualArchiveDestinationURL = nil
+        manualArchiveDestinationURL =
+            nil
 
         guard let document else {
             clearAnalysis()
@@ -403,13 +405,151 @@ final class InboxViewModel {
     func setManualArchiveDestination(
         _ url: URL
     ) {
+
         manualArchiveDestinationURL =
             url
     }
 
     func clearManualArchiveDestination() {
+
         manualArchiveDestinationURL =
             nil
+    }
+
+    // MARK: - Learning From Manual Destination
+
+    private func rememberManualArchiveDestination(
+        for document: DocumentRecord,
+        destinationURL: URL
+    ) {
+
+        guard let documentAnalysis =
+            analysesByURL[
+                document.sourceURL
+            ] ?? analysis
+        else {
+            return
+        }
+
+        guard let destinationInfo =
+            archiveDestinationInfo(
+                for:
+                    destinationURL
+            )
+        else {
+            return
+        }
+
+        let learnedSuggestion =
+            FolderSuggestion(
+                ruleName:
+                    "Manuell bestätigtes Archivziel",
+                area:
+                    destinationInfo.area,
+                folder:
+                    destinationInfo.relativePath,
+                confidence:
+                    1.0,
+                reasons: [
+                    "Archivziel wurde beim Archivieren manuell gewählt"
+                ]
+            )
+
+        LearningEngine()
+            .remember(
+                analysis:
+                    documentAnalysis,
+                destination:
+                    learnedSuggestion
+            )
+    }
+
+    private func archiveDestinationInfo(
+        for destinationURL: URL
+    ) -> (
+        area: ArchiveArea,
+        relativePath: String
+    )? {
+
+        let destination =
+            destinationURL
+                .standardizedFileURL
+
+        for area in
+            ArchiveArea.allCases {
+
+            guard let workspace =
+                archiveWorkspaceStore
+                    .workspace(
+                        matching:
+                            area
+                    )
+            else {
+                continue
+            }
+
+            guard let rootURL =
+                archiveWorkspaceStore
+                    .folderURL(
+                        for:
+                            workspace
+                    )
+            else {
+                continue
+            }
+
+            let root =
+                rootURL
+                    .standardizedFileURL
+
+            let rootPath =
+                root.path
+
+            let destinationPath =
+                destination.path
+
+            guard
+                destinationPath ==
+                    rootPath ||
+                destinationPath
+                    .hasPrefix(
+                        rootPath + "/"
+                    )
+            else {
+                continue
+            }
+
+            let relativePath =
+                String(
+                    destinationPath
+                        .dropFirst(
+                            rootPath.count
+                        )
+                )
+                .trimmingCharacters(
+                    in:
+                        CharacterSet(
+                            charactersIn:
+                                "/"
+                        )
+                )
+
+            // Das Workspace-Root selbst speichern wir
+            // nicht als Lernziel, weil FolderSuggestion
+            // einen relativen Unterordner erwartet.
+            guard !relativePath.isEmpty else {
+                return nil
+            }
+
+            return (
+                area:
+                    area,
+                relativePath:
+                    relativePath
+            )
+        }
+
+        return nil
     }
 
     // MARK: - Filename Suggestion
@@ -426,6 +566,7 @@ final class InboxViewModel {
 
         guard let documentAnalysis
         else {
+
             return
                 filenameSuggestionService
                     .suggestFilename(
@@ -478,7 +619,8 @@ final class InboxViewModel {
                     "pdf"
                 )
 
-        guard destinationURL !=
+        guard
+            destinationURL !=
                 document.sourceURL
         else {
             return document
@@ -582,10 +724,12 @@ final class InboxViewModel {
             ] ?? folderSuggestion
 
         // Wenn kein manuelles Ziel gewählt wurde,
-        // brauchen wir weiterhin einen Atlas-Vorschlag.
-        if manualArchiveDestinationURL == nil {
+        // brauchen wir einen Atlas-Vorschlag.
+        if manualArchiveDestinationURL ==
+            nil {
 
-            guard suggestion != nil else {
+            guard suggestion != nil
+            else {
 
                 errorMessage =
                     "Es ist noch kein Zielordner vorhanden."
@@ -608,7 +752,8 @@ final class InboxViewModel {
 
             } else {
 
-                guard let suggestion else {
+                guard let suggestion
+                else {
 
                     errorMessage =
                         "Es ist noch kein Zielordner vorhanden."
@@ -663,9 +808,17 @@ final class InboxViewModel {
             let targetURL =
                 destinationFolderURL
 
+            // Wichtig:
+            // Das manuelle Ziel merken wir vor dem Move.
+            // Erst nach erfolgreichem Move wird daraus gelernt.
+            let manualDestinationForLearning =
+                manualArchiveDestinationURL
+
             _ = try await Task.detached(
-                priority: .userInitiated
+                priority:
+                    .userInitiated
             ) {
+
                 try fileMover.move(
                     file:
                         sourceURL,
@@ -674,6 +827,18 @@ final class InboxViewModel {
                 )
             }
             .value
+
+            // Nur ein erfolgreich archiviertes
+            // manuell gewähltes Ziel wird gelernt.
+            if let manualDestinationForLearning {
+
+                rememberManualArchiveDestination(
+                    for:
+                        document,
+                    destinationURL:
+                        manualDestinationForLearning
+                )
+            }
 
             analysesByURL
                 .removeValue(
@@ -742,7 +907,8 @@ final class InboxViewModel {
 
             parts.append(
                 formatter.string(
-                    from: date
+                    from:
+                        date
                 )
             )
         }

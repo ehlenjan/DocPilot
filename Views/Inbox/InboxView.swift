@@ -51,6 +51,9 @@ struct InboxView: View {
             maxHeight: .infinity,
             alignment: .topLeading
         )
+
+        // MARK: - Inbox Folder Picker
+
         .fileImporter(
             isPresented:
                 $isChoosingFolder,
@@ -66,7 +69,7 @@ struct InboxView: View {
             )
         }
 
-        // MARK: Atlas Learning Sheet
+        // MARK: - Atlas Learning Sheet
 
         .sheet(
             isPresented:
@@ -79,6 +82,7 @@ struct InboxView: View {
                 currentFolderSuggestion:
                     viewModel.folderSuggestion,
                 onCancel: {
+
                     isShowingAtlasHelp =
                         false
                 },
@@ -98,12 +102,19 @@ struct InboxView: View {
                                 detectedDate,
                             sender:
                                 company,
+
+                            // Der Benutzer hat hier
+                            // den Archivbereich bestätigt.
+                            recipientArea:
+                                archiveArea,
+
                             keywords:
                                 keywords,
                             confidence:
                                 1.0,
                             reasons: [
-                                "Informationen wurden vom Benutzer ergänzt"
+                                "Informationen wurden vom Benutzer ergänzt",
+                                "Empfängerbereich wurde vom Benutzer bestätigt"
                             ]
                         )
 
@@ -136,7 +147,7 @@ struct InboxView: View {
             )
         }
 
-        // MARK: Archive Destination Picker
+        // MARK: - Archive Destination Picker
 
         .sheet(
             isPresented:
@@ -156,12 +167,15 @@ struct InboxView: View {
                 isWorking:
                     false,
                 errorMessage:
-                    archiveViewModel.errorMessage,
+                    archiveViewModel
+                        .errorMessage,
                 onCancel: {
+
                     isShowingArchiveDestinationPicker =
                         false
                 },
-                onSelect: { destinationURL in
+                onSelect: {
+                    destinationURL in
 
                     viewModel
                         .setManualArchiveDestination(
@@ -174,10 +188,14 @@ struct InboxView: View {
             )
         }
 
+        // MARK: - Initial Load
+
         .onAppear {
 
             viewModel.loadDocuments()
         }
+
+        // MARK: - Document Selection
 
         .onChange(
             of: selectedDocument
@@ -187,11 +205,68 @@ struct InboxView: View {
                 newDocument?
                     .sourceURL
                     .deletingPathExtension()
-                    .lastPathComponent ?? ""
+                    .lastPathComponent
+                ?? ""
 
             viewModel.selectAnalysis(
                 for: newDocument
             )
+        }
+
+        // MARK: - Automatic Filename Suggestion
+
+        .onChange(
+            of: viewModel.analysis?.confidence
+        ) { _, newConfidence in
+
+            guard
+                newConfidence != nil,
+                let document =
+                    selectedDocument
+            else {
+                return
+            }
+
+            let currentFilename =
+                document
+                    .sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent
+
+            let cleanedDraft =
+                filenameDraft
+                    .trimmingCharacters(
+                        in:
+                            .whitespacesAndNewlines
+                    )
+
+            // Nur automatisch ersetzen,
+            // wenn der Benutzer den Namen
+            // noch nicht verändert hat.
+            guard
+                cleanedDraft.isEmpty ||
+                cleanedDraft ==
+                    currentFilename
+            else {
+                return
+            }
+
+            let suggestion =
+                viewModel
+                    .suggestFilename(
+                        for: document
+                    )
+                    .trimmingCharacters(
+                        in:
+                            .whitespacesAndNewlines
+                    )
+
+            guard !suggestion.isEmpty else {
+                return
+            }
+
+            filenameDraft =
+                suggestion
         }
     }
 
@@ -209,9 +284,11 @@ struct InboxView: View {
                 documentCount:
                     viewModel.documents.count,
                 onReload: {
+
                     reloadDocuments()
                 },
                 onChooseFolder: {
+
                     isChoosingFolder =
                         true
                 }
@@ -232,8 +309,10 @@ struct InboxView: View {
                         )
                 )
                 .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
+                    maxWidth:
+                        .infinity,
+                    maxHeight:
+                        .infinity
                 )
 
             } else if
@@ -241,8 +320,10 @@ struct InboxView: View {
 
                 EmptyDocumentListView()
                     .frame(
-                        maxWidth: .infinity,
-                        maxHeight: .infinity
+                        maxWidth:
+                            .infinity,
+                        maxHeight:
+                            .infinity
                     )
 
             } else {
@@ -251,9 +332,12 @@ struct InboxView: View {
             }
         }
         .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity,
-            alignment: .topLeading
+            maxWidth:
+                .infinity,
+            maxHeight:
+                .infinity,
+            alignment:
+                .topLeading
         )
     }
 
@@ -284,8 +368,10 @@ struct InboxView: View {
                 idealWidth: 320
             )
             .frame(
-                maxHeight: .infinity,
-                alignment: .top
+                maxHeight:
+                    .infinity,
+                alignment:
+                    .top
             )
 
             // PDF-Vorschau
@@ -293,8 +379,10 @@ struct InboxView: View {
             documentPreview
                 .frame(
                     minWidth: 420,
-                    maxHeight: .infinity,
-                    alignment: .top
+                    maxHeight:
+                        .infinity,
+                    alignment:
+                        .top
                 )
 
             // Atlas
@@ -306,14 +394,19 @@ struct InboxView: View {
                     maxWidth: 520
                 )
                 .frame(
-                    maxHeight: .infinity,
-                    alignment: .top
+                    maxHeight:
+                        .infinity,
+                    alignment:
+                        .top
                 )
         }
         .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity,
-            alignment: .topLeading
+            maxWidth:
+                .infinity,
+            maxHeight:
+                .infinity,
+            alignment:
+                .topLeading
         )
     }
 
@@ -332,8 +425,10 @@ struct InboxView: View {
             )
             .frame(
                 minWidth: 420,
-                maxWidth: .infinity,
-                maxHeight: .infinity
+                maxWidth:
+                    .infinity,
+                maxHeight:
+                    .infinity
             )
 
         } else {
@@ -348,8 +443,10 @@ struct InboxView: View {
             )
             .frame(
                 minWidth: 420,
-                maxWidth: .infinity,
-                maxHeight: .infinity
+                maxWidth:
+                    .infinity,
+                maxHeight:
+                    .infinity
             )
         }
     }
@@ -377,15 +474,15 @@ struct InboxView: View {
                     viewModel.analysis,
                 folderSuggestion:
                     viewModel.folderSuggestion,
-
                 manualArchiveDestinationURL:
                     viewModel
                         .manualArchiveDestinationURL,
-
                 isAnalyzing:
                     viewModel.isAnalyzing,
                 isArchiving:
                     viewModel.isArchiving,
+
+                // MARK: Analyse
 
                 onAnalyzeDocument: {
 
@@ -395,15 +492,9 @@ struct InboxView: View {
                     )
                 },
 
-                onGenerateSuggestion: {
+                // MARK: Dateiname manuell neu erzeugen
 
-                    filenameDraft =
-                        viewModel
-                            .suggestFilename(
-                                for:
-                                    document
-                            )
-                },
+                // MARK: Lernen
 
                 onRememberSuggestion: {
 
@@ -417,6 +508,8 @@ struct InboxView: View {
                         true
                 },
 
+                // MARK: Archivziel
+
                 onChangeArchiveDestination: {
 
                     isShowingArchiveDestinationPicker =
@@ -429,20 +522,64 @@ struct InboxView: View {
                         .clearManualArchiveDestination()
                 },
 
+                // MARK: Nur Umbenennen
+
                 onRename: {
 
                     renameSelectedDocument()
                 },
 
+                // MARK: Umbenennen + Archivieren
+
                 onArchive: {
 
                     Task {
 
+                        var documentToArchive =
+                            document
+
+                        let currentFilename =
+                            document
+                                .sourceURL
+                                .deletingPathExtension()
+                                .lastPathComponent
+
+                        let cleanedDraft =
+                            filenameDraft
+                                .trimmingCharacters(
+                                    in:
+                                        .whitespacesAndNewlines
+                                )
+
+                        // Wenn im Dateinamensfeld
+                        // ein anderer Name steht,
+                        // wird er zuerst tatsächlich
+                        // auf die PDF angewendet.
+                        if !cleanedDraft.isEmpty &&
+                            cleanedDraft !=
+                                currentFilename {
+
+                            guard let renamedDocument =
+                                viewModel.rename(
+                                    document:
+                                        document,
+                                    to:
+                                        cleanedDraft
+                                )
+                            else {
+                                return
+                            }
+
+                            documentToArchive =
+                                renamedDocument
+                        }
+
+                        // Erst danach archivieren.
                         let success =
                             await viewModel
                                 .archive(
                                     document:
-                                        document
+                                        documentToArchive
                                 )
 
                         if success {
@@ -460,8 +597,10 @@ struct InboxView: View {
                 minWidth: 360,
                 idealWidth: 430,
                 maxWidth: 520,
-                maxHeight: .infinity,
-                alignment: .top
+                maxHeight:
+                    .infinity,
+                alignment:
+                    .top
             )
 
         } else {
@@ -478,7 +617,8 @@ struct InboxView: View {
                 minWidth: 360,
                 idealWidth: 430,
                 maxWidth: 520,
-                maxHeight: .infinity
+                maxHeight:
+                    .infinity
             )
         }
     }
@@ -601,6 +741,7 @@ struct InboxView: View {
 }
 
 #Preview {
+
     InboxView()
         .frame(
             width: 1400,

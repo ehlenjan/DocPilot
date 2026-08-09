@@ -14,8 +14,10 @@ final class LearningManager {
         self.store = store
         self.entries = store.load()
 
-        removeExistingDuplicates()
+        mergeExistingEntries()
     }
+
+    // MARK: - Add
 
     func add(
         _ entry: LearningEntry
@@ -27,19 +29,24 @@ final class LearningManager {
             }
         ) {
 
+            // Bestehende Zuordnung wurde erneut bestätigt.
             entries[index].registerUse()
+
             save()
             return
-
         }
 
         entries.append(entry)
+
         save()
     }
+
+    // MARK: - Remove
 
     func remove(
         _ entry: LearningEntry
     ) {
+
         entries.removeAll {
             $0.id == entry.id
         }
@@ -47,50 +54,123 @@ final class LearningManager {
         save()
     }
 
+    // MARK: - Clear
+
     func clear() {
+
         entries.removeAll()
+
         save()
     }
 
+    // MARK: - Reload
+
     func reload() {
-        entries = store.load()
-        removeExistingDuplicates()
+
+        entries =
+            store.load()
+
+        mergeExistingEntries()
     }
 
-    private func removeExistingDuplicates() {
+    // MARK: - Merge Existing Entries
 
-        var uniqueEntries: [LearningEntry] = []
+    private func mergeExistingEntries() {
+
+        var mergedEntries:
+            [LearningEntry] = []
 
         for entry in entries {
 
-            if let existingIndex = uniqueEntries.firstIndex(
-                where: {
-                    equivalent($0, entry)
-                }
-            ) {
+            if let existingIndex =
+                mergedEntries.firstIndex(
+                    where: {
+                        equivalent(
+                            $0,
+                            entry
+                        )
+                    }
+                ) {
 
-                if entry.usageCount >
-                    uniqueEntries[existingIndex].usageCount {
+                var existingEntry =
+                    mergedEntries[
+                        existingIndex
+                    ]
 
-                    uniqueEntries[existingIndex] = entry
+                // Bereits vorhandene, gleichartige
+                // Erfahrungen zusammenfassen.
+                let combinedUsageCount =
+                    existingEntry.usageCount +
+                    entry.usageCount
 
-                }
+                let newestLastUsedAt =
+                    max(
+                        existingEntry.lastUsedAt,
+                        entry.lastUsedAt
+                    )
+
+                let oldestCreatedAt =
+                    min(
+                        existingEntry.createdAt,
+                        entry.createdAt
+                    )
+
+                // Keywords aus beiden Einträgen
+                // zusammenführen.
+                let combinedKeywords =
+                    mergedKeywords(
+                        existingEntry.keywords,
+                        entry.keywords
+                    )
+
+                existingEntry =
+                    LearningEntry(
+                        company:
+                            existingEntry.company
+                            ?? entry.company,
+                        documentType:
+                            existingEntry.documentType,
+                        keywords:
+                            combinedKeywords,
+                        archiveArea:
+                            existingEntry.archiveArea,
+                        folder:
+                            existingEntry.folder,
+                        createdAt:
+                            oldestCreatedAt,
+                        lastUsedAt:
+                            newestLastUsedAt,
+                        usageCount:
+                            combinedUsageCount
+                    )
+
+                mergedEntries[
+                    existingIndex
+                ] =
+                    existingEntry
 
             } else {
 
-                uniqueEntries.append(entry)
-
+                mergedEntries.append(
+                    entry
+                )
             }
-
         }
 
-        guard uniqueEntries.count != entries.count else {
+        guard
+            mergedEntries.count !=
+                entries.count
+        else {
             return
         }
 
-        entries = uniqueEntries
+        entries =
+            mergedEntries
+
         save()
     }
+
+    // MARK: - Equivalence
 
     private func equivalent(
         _ first: LearningEntry,
@@ -98,24 +178,76 @@ final class LearningManager {
     ) -> Bool {
 
         let companiesMatch =
-            normalized(first.company) ==
-            normalized(second.company)
+            normalized(
+                first.company
+            ) ==
+            normalized(
+                second.company
+            )
 
         let foldersMatch =
-            normalized(first.folder) ==
-            normalized(second.folder)
+            normalized(
+                first.folder
+            ) ==
+            normalized(
+                second.folder
+            )
 
-        let keywordsMatch =
-            normalizedKeywords(first.keywords) ==
-            normalizedKeywords(second.keywords)
-
-        return companiesMatch
-            && first.documentType == second.documentType
-            && first.archiveArea == second.archiveArea
-            && foldersMatch
-            && keywordsMatch
-
+        return
+            companiesMatch
+            &&
+            first.documentType ==
+                second.documentType
+            &&
+            first.archiveArea ==
+                second.archiveArea
+            &&
+            foldersMatch
     }
+
+    // MARK: - Keywords
+
+    private func mergedKeywords(
+        _ first: [String],
+        _ second: [String]
+    ) -> [String] {
+
+        var result:
+            [String] = []
+
+        var seen:
+            Set<String> = []
+
+        for keyword in
+            first + second {
+
+            let normalizedKeyword =
+                normalized(
+                    keyword
+                )
+
+            guard
+                !normalizedKeyword.isEmpty,
+                !seen.contains(
+                    normalizedKeyword
+                )
+            else {
+                continue
+            }
+
+            seen.insert(
+                normalizedKeyword
+            )
+
+            result.append(
+                keyword
+            )
+        }
+
+        return result
+    }
+
+    // MARK: - Normalize
 
     private func normalized(
         _ value: String?
@@ -127,31 +259,28 @@ final class LearningManager {
 
         return value
             .trimmingCharacters(
-                in: .whitespacesAndNewlines
+                in:
+                    .whitespacesAndNewlines
             )
             .folding(
                 options: [
                     .caseInsensitive,
                     .diacriticInsensitive
                 ],
-                locale: Locale(identifier: "de_DE")
+                locale:
+                    Locale(
+                        identifier:
+                            "de_DE"
+                    )
             )
-
     }
 
-    private func normalizedKeywords(
-        _ keywords: [String]
-    ) -> Set<String> {
-
-        Set(
-            keywords.map {
-                normalized($0)
-            }
-        )
-
-    }
+    // MARK: - Save
 
     private func save() {
-        store.save(entries)
+
+        store.save(
+            entries
+        )
     }
 }

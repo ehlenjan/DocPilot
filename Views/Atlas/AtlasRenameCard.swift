@@ -7,13 +7,18 @@ struct AtlasRenameCard: View {
     let isArchiving: Bool
     let canArchive: Bool
 
-    let onGenerateSuggestion: () -> Void
     let onRename: () -> Void
     let onArchive: () -> Void
 
     var body: some View {
+
         AtlasCard {
-            VStack(alignment: .leading, spacing: 14) {
+
+            VStack(
+                alignment: .leading,
+                spacing: 14
+            ) {
+
                 Label(
                     "Dateiname",
                     systemImage: "pencil"
@@ -24,83 +29,130 @@ struct AtlasRenameCard: View {
                     "Neuer Dateiname",
                     text: $filenameDraft
                 )
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(
+                    .roundedBorder
+                )
 
-                HStack {
-                    Text(".pdf")
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    Button(
-                        action: onGenerateSuggestion
-                    ) {
-                        Label(
-                            "Vorschlag",
-                            systemImage: "sparkles"
-                        )
-                    }
-                }
+                Text(".pdf")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 HStack(spacing: 10) {
-                    Button(
-                        action: onRename
-                    ) {
-                        Label(
-                            "Umbenennen",
-                            systemImage: "checkmark.circle"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .keyboardShortcut(
-                        .return,
-                        modifiers: [.command]
-                    )
-                    .disabled(cleanFilename.isEmpty)
 
                     Button(
-                        action: onArchive
+                        action:
+                            onRename
                     ) {
+
+                        Label(
+                            "Umbenennen",
+                            systemImage:
+                                "checkmark.circle"
+                        )
+                        .frame(
+                            maxWidth:
+                                .infinity
+                        )
+                    }
+                    .buttonStyle(
+                        .bordered
+                    )
+                    .keyboardShortcut(
+                        .return,
+                        modifiers: [
+                            .command
+                        ]
+                    )
+                    .disabled(
+                        cleanFilename.isEmpty
+                    )
+
+                    Button(
+                        action:
+                            onArchive
+                    ) {
+
                         Label(
                             isArchiving
                                 ? "Archiviert …"
                                 : "Archivieren",
-                            systemImage: isArchiving
+                            systemImage:
+                                isArchiving
                                 ? "hourglass"
                                 : "archivebox.fill"
                         )
-                        .frame(maxWidth: .infinity)
+                        .frame(
+                            maxWidth:
+                                .infinity
+                        )
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(
+                        .borderedProminent
+                    )
+
+                    // Enter / Return
+                    .keyboardShortcut(
+                        .defaultAction
+                    )
+
                     .disabled(
                         !canArchive ||
-                        isArchiving
+                        isArchiving ||
+                        cleanFilename.isEmpty
                     )
                 }
+
+                HStack(spacing: 14) {
+
+                    Label(
+                        "Enter: Archivieren",
+                        systemImage:
+                            "return"
+                    )
+
+                    Label(
+                        "⌘↩︎: Umbenennen",
+                        systemImage:
+                            "command"
+                    )
+                }
+                .font(.caption2)
+                .foregroundStyle(
+                    .secondary
+                )
             }
         }
     }
 
-    private var cleanFilename: String {
-        filenameDraft.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
+    private var cleanFilename:
+        String {
+
+        filenameDraft
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
     }
 }
 
 #Preview {
-    @Previewable @State var filename =
+
+    @Previewable @State
+    var filename =
         "2026-08-03 Rechnung RAISA"
 
     AtlasRenameCard(
-        filenameDraft: $filename,
-        isArchiving: false,
-        canArchive: true,
-        onGenerateSuggestion: {},
+        filenameDraft:
+            $filename,
+        isArchiving:
+            false,
+        canArchive:
+            true,
         onRename: {},
         onArchive: {}
     )
     .padding()
-    .frame(width: 420)
+    .frame(
+        width: 420
+    )
 }

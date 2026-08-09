@@ -79,6 +79,7 @@
 		30ADDF313028F02600F26FFB /* ArchiveMoveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF303028F02600F26FFB /* ArchiveMoveSheet.swift */; };
 		30ADDF3330291A2900F26FFB /* ArchiveDestinationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */; };
 		30ADDF3530291ECB00F26FFB /* ArchiveFolderPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */; };
+		30ADDF3730292BC400F26FFB /* RecipientRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -155,6 +156,7 @@
 		30ADDF303028F02600F26FFB /* ArchiveMoveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveMoveSheet.swift; sourceTree = "<group>"; };
 		30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDestinationResolver.swift; sourceTree = "<group>"; };
 		30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFolderPickerSheet.swift; sourceTree = "<group>"; };
+		30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientRecognizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -333,6 +335,7 @@
 				303B7A58301FD4FE001D99ED /* DocumentClassifier.swift */,
 				303B7A5A301FD530001D99ED /* DateRecognizer.swift */,
 				303B7A5C301FD574001D99ED /* KeywordRecognizer.swift */,
+				30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */,
 			);
 			path = Analysis;
 			sourceTree = "<group>";
@@ -591,6 +594,7 @@
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
 				303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */,
+				30ADDF3730292BC400F26FFB /* RecipientRecognizer.swift in Sources */,
 				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
 				303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */,
 				30ADDF2F3028EFD400F26FFB /* ArchiveFileMover.swift in Sources */,

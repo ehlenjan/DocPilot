@@ -22,7 +22,6 @@ struct AtlasPanelView: View {
     let isArchiving: Bool
 
     let onAnalyzeDocument: () -> Void
-    let onGenerateSuggestion: () -> Void
     let onRememberSuggestion: () -> Void
     let onHelpAtlas: () -> Void
     let onChangeArchiveDestination: () -> Void
@@ -31,19 +30,23 @@ struct AtlasPanelView: View {
     let onArchive: () -> Void
 
     var body: some View {
+
         ScrollView {
+
             VStack(spacing: 12) {
+
+                // MARK: Atlas Empfehlung
 
                 AtlasRecommendationCard(
                     analysis: analysis,
                     folderSuggestion: folderSuggestion
                 )
 
+                // MARK: Archivziel
+
                 archiveDestinationCard
 
-                AtlasQuickFactsCard(
-                    analysis: analysis
-                )
+                // MARK: Dateiname / Archivieren
 
                 AtlasRenameCard(
                     filenameDraft: $filenameDraft,
@@ -51,13 +54,13 @@ struct AtlasPanelView: View {
                     canArchive:
                         folderSuggestion != nil ||
                         manualArchiveDestinationURL != nil,
-                    onGenerateSuggestion:
-                        onGenerateSuggestion,
                     onRename:
                         onRename,
                     onArchive:
                         onArchive
                 )
+
+                // MARK: Analyse
 
                 ExpandableAtlasSection(
                     title:
@@ -70,6 +73,8 @@ struct AtlasPanelView: View {
                     analysisCard
                 }
 
+                // MARK: Lernen
+
                 ExpandableAtlasSection(
                     title:
                         "Atlas lernen lassen",
@@ -78,8 +83,10 @@ struct AtlasPanelView: View {
                     isExpanded:
                         $learningExpanded
                 ) {
+
                     AtlasLearningCard(
-                        analysis: analysis,
+                        analysis:
+                            analysis,
                         folderSuggestion:
                             folderSuggestion,
                         onRemember:
@@ -88,6 +95,8 @@ struct AtlasPanelView: View {
                             onHelpAtlas
                     )
                 }
+
+                // MARK: Aktuelle Datei
 
                 ExpandableAtlasSection(
                     title:
@@ -139,21 +148,30 @@ struct AtlasPanelView: View {
                         "Manuell gewählt"
                     )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        .secondary
+                    )
 
                     Text(
                         manualArchiveDestinationURL
                             .lastPathComponent
                     )
-                    .font(.callout.bold())
+                    .font(
+                        .callout.bold()
+                    )
 
                     Text(
-                        manualArchiveDestinationURL.path
+                        manualArchiveDestinationURL
+                            .path
                     )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        .secondary
+                    )
                     .lineLimit(2)
-                    .truncationMode(.middle)
+                    .truncationMode(
+                        .middle
+                    )
 
                 } else if let folderSuggestion {
 
@@ -161,12 +179,17 @@ struct AtlasPanelView: View {
                         "Atlas-Vorschlag"
                     )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        .secondary
+                    )
 
                     Text(
-                        folderSuggestion.displayPath
+                        folderSuggestion
+                            .displayPath
                     )
-                    .font(.callout.bold())
+                    .font(
+                        .callout.bold()
+                    )
 
                 } else {
 
@@ -174,34 +197,50 @@ struct AtlasPanelView: View {
                         "Noch kein Ziel vorhanden."
                     )
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        .secondary
+                    )
                 }
 
                 HStack {
 
                     Button {
+
                         onChangeArchiveDestination()
+
                     } label: {
+
                         Label(
                             "Ziel ändern …",
                             systemImage:
                                 "folder"
                         )
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(isArchiving)
+                    .buttonStyle(
+                        .bordered
+                    )
+                    .disabled(
+                        isArchiving
+                    )
 
                     if manualArchiveDestinationURL != nil {
 
                         Button {
+
                             onClearArchiveDestination()
+
                         } label: {
+
                             Text(
                                 "Atlas-Ziel verwenden"
                             )
                         }
-                        .buttonStyle(.borderless)
-                        .disabled(isArchiving)
+                        .buttonStyle(
+                            .borderless
+                        )
+                        .disabled(
+                            isArchiving
+                        )
                     }
                 }
             }
@@ -210,12 +249,16 @@ struct AtlasPanelView: View {
 
     // MARK: - Analysis
 
-    private var analysisCard: some View {
+    private var analysisCard:
+        some View {
+
         AtlasCard {
+
             VStack(
                 alignment: .leading,
                 spacing: 12
             ) {
+
                 Label(
                     "Dokumentanalyse",
                     systemImage:
@@ -227,6 +270,7 @@ struct AtlasPanelView: View {
                     action:
                         onAnalyzeDocument
                 ) {
+
                     Label(
                         isAnalyzing
                             ? "Analyse läuft …"
@@ -235,10 +279,13 @@ struct AtlasPanelView: View {
                             "text.viewfinder"
                     )
                     .frame(
-                        maxWidth: .infinity
+                        maxWidth:
+                            .infinity
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(
+                    .bordered
+                )
                 .disabled(
                     isAnalyzing ||
                     isArchiving
@@ -257,13 +304,16 @@ struct AtlasPanelView: View {
 
                 if !extractedText.isEmpty {
 
-                    Text("Erkannter Text")
-                        .font(.caption)
-                        .foregroundStyle(
-                            .secondary
-                        )
+                    Text(
+                        "Erkannter Text"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(
+                        .secondary
+                    )
 
                     ScrollView {
+
                         Text(
                             extractedText
                         )
@@ -296,14 +346,46 @@ struct AtlasPanelView: View {
                         alignment: .leading,
                         spacing: 8
                     ) {
+
                         ForEach(
                             analysis.reasons,
                             id: \.self
                         ) { reason in
+
                             Label(
                                 reason,
                                 systemImage:
                                     "checkmark.circle"
+                            )
+                            .font(.caption)
+                        }
+                    }
+                }
+
+                if let folderSuggestion,
+                   !folderSuggestion.reasons.isEmpty {
+
+                    Divider()
+
+                    Text(
+                        "Warum dieses Archivziel?"
+                    )
+                    .font(.headline)
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+
+                        ForEach(
+                            folderSuggestion.reasons,
+                            id: \.self
+                        ) { reason in
+
+                            Label(
+                                reason,
+                                systemImage:
+                                    "folder.badge.checkmark"
                             )
                             .font(.caption)
                         }
@@ -315,37 +397,55 @@ struct AtlasPanelView: View {
 
     // MARK: - Current File
 
-    private var currentFileCard: some View {
+    private var currentFileCard:
+        some View {
+
         AtlasCard {
+
             VStack(
                 alignment: .leading,
                 spacing: 10
             ) {
+
                 Label(
                     "Aktuelle Datei",
-                    systemImage: "doc"
+                    systemImage:
+                        "doc"
                 )
                 .font(.headline)
 
                 Text(
-                    document.originalFilename
+                    document
+                        .originalFilename
                 )
                 .font(.callout)
-                .textSelection(.enabled)
+                .textSelection(
+                    .enabled
+                )
                 .lineLimit(3)
 
                 Text(
-                    document.sourceURL.path
+                    document
+                        .sourceURL
+                        .path
                 )
                 .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
+                .foregroundStyle(
+                    .secondary
+                )
+                .textSelection(
+                    .enabled
+                )
                 .lineLimit(2)
-                .truncationMode(.middle)
+                .truncationMode(
+                    .middle
+                )
             }
         }
     }
 }
+
+// MARK: - Expandable Section
 
 private struct ExpandableAtlasSection<
     Content: View
@@ -354,15 +454,18 @@ private struct ExpandableAtlasSection<
     let title: String
     let systemImage: String
 
-    @Binding var isExpanded: Bool
+    @Binding var isExpanded:
+        Bool
 
     @ViewBuilder
     let content: () -> Content
 
     var body: some View {
+
         VStack(spacing: 0) {
 
             Button {
+
                 withAnimation(
                     .easeInOut(
                         duration: 0.2
@@ -370,6 +473,7 @@ private struct ExpandableAtlasSection<
                 ) {
                     isExpanded.toggle()
                 }
+
             } label: {
 
                 HStack(spacing: 10) {
@@ -381,7 +485,9 @@ private struct ExpandableAtlasSection<
                             : "chevron.right"
                     )
                     .font(.caption)
-                    .frame(width: 12)
+                    .frame(
+                        width: 12
+                    )
 
                     Label(
                         title,
@@ -395,30 +501,48 @@ private struct ExpandableAtlasSection<
                 .contentShape(
                     Rectangle()
                 )
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
+                .padding(
+                    .vertical,
+                    10
+                )
+                .padding(
+                    .horizontal,
+                    12
+                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(
+                .plain
+            )
 
             if isExpanded {
+
                 content()
-                    .padding(.top, 8)
+                    .padding(
+                        .top,
+                        8
+                    )
                     .transition(
-                        .opacity.combined(
-                            with:
-                                .move(
-                                    edge: .top
-                                )
-                        )
+                        .opacity
+                            .combined(
+                                with:
+                                    .move(
+                                        edge:
+                                            .top
+                                    )
+                            )
                     )
             }
         }
         .frame(
-            maxWidth: .infinity,
-            alignment: .leading
+            maxWidth:
+                .infinity,
+            alignment:
+                .leading
         )
     }
 }
+
+// MARK: - Preview
 
 #Preview {
 
@@ -434,6 +558,8 @@ private struct ExpandableAtlasSection<
                 Date(),
             sender:
                 "RAISA",
+            recipientArea:
+                .business,
             keywords: [
                 "Rechnung",
                 "Futtermittel",
@@ -444,6 +570,7 @@ private struct ExpandableAtlasSection<
             reasons: [
                 "Dokumentart Rechnung erkannt",
                 "Absender RAISA erkannt",
+                "Empfänger Betrieb erkannt",
                 "Datum erkannt",
                 "3 relevante Schlüsselwörter gefunden"
             ]
@@ -452,16 +579,18 @@ private struct ExpandableAtlasSection<
     let previewFolderSuggestion =
         FolderSuggestion(
             ruleName:
-                "Gelernte Zuordnung",
+                "Betrieb Belege",
             area:
-                .ehaKG,
+                .business,
             folder:
-                "Lieferscheine",
+                "Belege",
             confidence:
                 0.95,
             reasons: [
+                "Empfänger Betrieb passt zum Archivbereich",
                 "Atlas hat ähnliche Dokumente gefunden",
-                "Firma stimmt überein"
+                "Dieses Ziel wurde bereits 4× bestätigt",
+                "Gelernte Zuordnung bestätigt den Regelvorschlag"
             ]
         )
 
@@ -491,7 +620,6 @@ private struct ExpandableAtlasSection<
         isArchiving:
             false,
         onAnalyzeDocument: {},
-        onGenerateSuggestion: {},
         onRememberSuggestion: {},
         onHelpAtlas: {},
         onChangeArchiveDestination: {},
