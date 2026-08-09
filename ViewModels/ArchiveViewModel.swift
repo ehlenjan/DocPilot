@@ -5,79 +5,157 @@ import Observation
 @Observable
 final class ArchiveViewModel {
 
-    private let archiveWorkspaceStore = ArchiveWorkspaceStore()
-    private let scanner = ArchiveScanner()
+    private let archiveWorkspaceStore =
+        ArchiveWorkspaceStore()
 
-    var rootNode: ArchiveNode?
+    private let scanner =
+        ArchiveScanner()
+
+    private let documentService =
+        ArchiveDocumentService()
+
+    private let fileMover =
+        ArchiveFileMover()
+
+    var rootNodesByWorkspace: [UUID: ArchiveNode] = [:]
+
     var errorMessage: String?
 
     var isLoading = false
+
     var loadingURLs: Set<URL> = []
+
+    var documents: [DocumentRecord] = []
+
+    var isLoadingDocuments = false
+
+    var documentErrorMessage: String?
+
+    var isMovingDocument = false
+
+    var moveErrorMessage: String?
+
+    var workspaces: [ArchiveWorkspace] {
+        archiveWorkspaceStore.workspaces
+    }
+
+    // MARK: - Archive Loading
 
     func reload() {
         errorMessage = nil
-        rootNode = nil
+        rootNodesByWorkspace = [:]
         isLoading = true
 
-        guard let workspace =
-            archiveWorkspaceStore.workspaces.first
-        else {
-            errorMessage = "Es wurde noch kein Arbeitsbereich angelegt."
-            isLoading = false
-            return
-        }
+        let availableWorkspaces =
+            archiveWorkspaceStore.workspaces.filter { workspace in
+                archiveWorkspaceStore.folderURL(
+                    for: workspace
+                ) != nil
+            }
 
-        guard let folder =
-            archiveWorkspaceStore.folderURL(
-                for: workspace
-            )
-        else {
+        guard !availableWorkspaces.isEmpty else {
             errorMessage =
-                "Für \(workspace.name) wurde noch kein Archivort ausgewählt."
+                "Für keinen Arbeitsbereich wurde bisher ein Archivort ausgewählt."
+
             isLoading = false
             return
         }
 
         Task {
-            do {
-                let scannedRoot = try await Task.detached(
-                    priority: .userInitiated
-                ) {
-                    try self.scanner.scanRoot(
-                        rootURL: folder
+            var loadedRoots: [UUID: ArchiveNode] = [:]
+            var errors: [String] = []
+
+            for workspace in availableWorkspaces {
+
+                guard let folder =
+                    archiveWorkspaceStore.folderURL(
+                        for: workspace
+                    )
+                else {
+                    continue
+                }
+
+                do {
+                    let scannedRoot =
+                        try await Task.detached(
+                            priority: .userInitiated
+                        ) {
+                            try self.scanner.scanRoot(
+                                rootURL: folder
+                            )
+                        }
+                        .value
+
+                    loadedRoots[workspace.id] =
+                        scannedRoot
+
+                } catch {
+                    errors.append(
+                        "\(workspace.name): \(error.localizedDescription)"
                     )
                 }
-                .value
+            }
 
-                rootNode = scannedRoot
+            rootNodesByWorkspace =
+                loadedRoots
 
-            } catch {
-                errorMessage = error.localizedDescription
+            if errors.isEmpty {
+                errorMessage = nil
+            } else {
+                errorMessage =
+                    errors.joined(
+                        separator: "\n"
+                    )
             }
 
             isLoading = false
         }
     }
 
+    // MARK: - Workspace
+
+    func rootNode(
+        for workspace: ArchiveWorkspace
+    ) -> ArchiveNode? {
+        rootNodesByWorkspace[
+            workspace.id
+        ]
+    }
+
+    func folderURL(
+        for workspace: ArchiveWorkspace
+    ) -> URL? {
+        archiveWorkspaceStore.folderURL(
+            for: workspace
+        )
+    }
+
+    // MARK: - Folder Loading
+
     func loadChildren(
         for node: ArchiveNode
     ) {
-        guard !loadingURLs.contains(node.url) else {
+        guard !loadingURLs.contains(
+            node.url
+        ) else {
             return
         }
 
-        loadingURLs.insert(node.url)
+        loadingURLs.insert(
+            node.url
+        )
 
         Task {
             do {
-                let children = try await Task.detached(
-                    priority: .userInitiated
-                ) {
-                    try self.scanner.loadChildren(
-                        of: node.url
-                    )
-                }
-                .value
+                let children =
+                    try await Task.detached(
+                        priority: .userInitiated
+                    ) {
+                        try self.scanner.loadChildren(
+                            of: node.url
+                        )
+                    }
+                    .value
 
                 updateNode(
                     url: node.url,
@@ -85,42 +163,143 @@ final class ArchiveViewModel {
                 )
 
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage =
+                    error.localizedDescription
             }
 
-            loadingURLs.remove(node.url)
+            loadingURLs.remove(
+                node.url
+            )
         }
     }
 
     func isLoadingChildren(
         for node: ArchiveNode
     ) -> Bool {
-        loadingURLs.contains(node.url)
+        loadingURLs.contains(
+            node.url
+        )
     }
+
+    // MARK: - Documents
+
+    func loadDocuments(
+        for node: ArchiveNode
+    ) {
+        documents = []
+        documentErrorMessage = nil
+        isLoadingDocuments = true
+
+        Task {
+            do {
+                let loadedDocuments =
+                    try await Task.detached(
+                        priority: .userInitiated
+                    ) {
+                        try self.documentService.documents(
+                            in: node.url
+                        )
+                    }
+                    .value
+
+                documents =
+                    loadedDocuments
+
+            } catch {
+                documentErrorMessage =
+                    error.localizedDescription
+            }
+
+            isLoadingDocuments = false
+        }
+    }
+
+    // MARK: - Move Document
+
+    func moveDocument(
+        _ document: DocumentRecord,
+        to destinationFolderURL: URL,
+        currentFolder: ArchiveNode?
+    ) async -> Bool {
+
+        moveErrorMessage = nil
+        isMovingDocument = true
+
+        defer {
+            isMovingDocument = false
+        }
+
+        do {
+            _ = try await Task.detached(
+                priority: .userInitiated
+            ) {
+                try self.fileMover.move(
+                    file: document.sourceURL,
+                    to: destinationFolderURL
+                )
+            }
+            .value
+
+            if let currentFolder {
+                loadDocuments(
+                    for: currentFolder
+                )
+            }
+
+            return true
+
+        } catch {
+            moveErrorMessage =
+                error.localizedDescription
+
+            return false
+        }
+    }
+
+    // MARK: - Tree Update
 
     private func updateNode(
         url: URL,
         children: [ArchiveNode]
     ) {
-        guard var rootNode else {
-            return
-        }
+        let workspaceIDs =
+            Array(
+                rootNodesByWorkspace.keys
+            )
 
-        if rootNode.url == url {
-            rootNode.children = children
-            self.rootNode = rootNode
-            return
-        }
+        for workspaceID in workspaceIDs {
 
-        guard updateChildren(
-            in: &rootNode,
-            targetURL: url,
-            children: children
-        ) else {
-            return
-        }
+            guard var rootNode =
+                rootNodesByWorkspace[
+                    workspaceID
+                ]
+            else {
+                continue
+            }
 
-        self.rootNode = rootNode
+            if rootNode.url == url {
+                rootNode.children =
+                    children
+
+                rootNodesByWorkspace[
+                    workspaceID
+                ] = rootNode
+
+                return
+            }
+
+            if updateChildren(
+                in: &rootNode,
+                targetURL: url,
+                children: children
+            ) {
+                rootNodesByWorkspace[
+                    workspaceID
+                ] = rootNode
+
+                return
+            }
+        }
     }
 
     private func updateChildren(
@@ -129,8 +308,14 @@ final class ArchiveViewModel {
         children: [ArchiveNode]
     ) -> Bool {
         for index in node.children.indices {
-            if node.children[index].url == targetURL {
-                node.children[index].children = children
+
+            if node.children[index].url ==
+                targetURL {
+
+                node.children[index]
+                    .children =
+                    children
+
                 return true
             }
 

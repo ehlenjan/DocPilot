@@ -1,6 +1,7 @@
 import Foundation
 
 struct DocumentRecord: Identifiable, Hashable {
+
     let id: UUID
     let sourceURL: URL
 
@@ -16,14 +17,82 @@ struct DocumentRecord: Identifiable, Hashable {
     init(sourceURL: URL) {
         self.id = UUID()
         self.sourceURL = sourceURL
-        self.originalFilename = sourceURL.lastPathComponent
-        self.suggestedFilename = sourceURL.deletingPathExtension().lastPathComponent
+        self.originalFilename =
+            sourceURL.lastPathComponent
+        self.suggestedFilename =
+            sourceURL
+                .deletingPathExtension()
+                .lastPathComponent
         self.documentType = .unknown
         self.area = nil
         self.targetFolder = nil
         self.confidence = 0
         self.reasons = []
         self.status = .new
+    }
+
+    // MARK: - File Information
+
+    var fileSize: Int64? {
+        do {
+            let values =
+                try sourceURL.resourceValues(
+                    forKeys: [
+                        .fileSizeKey
+                    ]
+                )
+
+            guard let size =
+                values.fileSize
+            else {
+                return nil
+            }
+
+            return Int64(size)
+
+        } catch {
+            return nil
+        }
+    }
+
+    var modificationDate: Date? {
+        do {
+            let values =
+                try sourceURL.resourceValues(
+                    forKeys: [
+                        .contentModificationDateKey
+                    ]
+                )
+
+            return values
+                .contentModificationDate
+
+        } catch {
+            return nil
+        }
+    }
+
+    var formattedFileSize: String {
+        guard let fileSize else {
+            return "–"
+        }
+
+        return ByteCountFormatter
+            .string(
+                fromByteCount: fileSize,
+                countStyle: .file
+            )
+    }
+
+    var formattedModificationDate: String {
+        guard let modificationDate else {
+            return "–"
+        }
+
+        return modificationDate.formatted(
+            date: .abbreviated,
+            time: .omitted
+        )
     }
 }
 

@@ -65,7 +65,6 @@
 		303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ABE302491CA001D99ED /* ArchiveScanner.swift */; };
 		303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC0302491D9001D99ED /* ArchiveNode.swift */; };
 		303B7AC330249433001D99ED /* ArchiveViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC230249433001D99ED /* ArchiveViewModel.swift */; };
-		303B7AC630249534001D99ED /* ArchiveExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC530249534001D99ED /* ArchiveExplorerView.swift */; };
 		303B7AC83024968E001D99ED /* ArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC73024968E001D99ED /* ArchiveView.swift */; };
 		303B7ACA30249A84001D99ED /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AC930249A84001D99ED /* ArchiveService.swift */; };
 		303B7ACC30249B62001D99ED /* DocumentMoveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACB30249B62001D99ED /* DocumentMoveService.swift */; };
@@ -73,6 +72,13 @@
 		303B7AD03025153A001D99ED /* ArchiveLocationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */; };
 		303B7AD23026932D001D99ED /* ArchiveWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AD13026932D001D99ED /* ArchiveWorkspace.swift */; };
 		303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */; };
+		30ADDF293027539400F26FFB /* ArchiveDocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF283027539400F26FFB /* ArchiveDocumentService.swift */; };
+		30ADDF2B3028EAAA00F26FFB /* ArchiveDocumentActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF2A3028EAAA00F26FFB /* ArchiveDocumentActions.swift */; };
+		30ADDF2D3028EBAB00F26FFB /* QuickLookManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF2C3028EBAB00F26FFB /* QuickLookManager.swift */; };
+		30ADDF2F3028EFD400F26FFB /* ArchiveFileMover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF2E3028EFD400F26FFB /* ArchiveFileMover.swift */; };
+		30ADDF313028F02600F26FFB /* ArchiveMoveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF303028F02600F26FFB /* ArchiveMoveSheet.swift */; };
+		30ADDF3330291A2900F26FFB /* ArchiveDestinationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */; };
+		30ADDF3530291ECB00F26FFB /* ArchiveFolderPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -135,7 +141,6 @@
 		303B7ABE302491CA001D99ED /* ArchiveScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveScanner.swift; sourceTree = "<group>"; };
 		303B7AC0302491D9001D99ED /* ArchiveNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveNode.swift; sourceTree = "<group>"; };
 		303B7AC230249433001D99ED /* ArchiveViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveViewModel.swift; sourceTree = "<group>"; };
-		303B7AC530249534001D99ED /* ArchiveExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveExplorerView.swift; sourceTree = "<group>"; };
 		303B7AC73024968E001D99ED /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		303B7AC930249A84001D99ED /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		303B7ACB30249B62001D99ED /* DocumentMoveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentMoveService.swift; sourceTree = "<group>"; };
@@ -143,6 +148,13 @@
 		303B7ACF3025153A001D99ED /* ArchiveLocationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveLocationsSettingsView.swift; sourceTree = "<group>"; };
 		303B7AD13026932D001D99ED /* ArchiveWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkspace.swift; sourceTree = "<group>"; };
 		303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkspaceStore.swift; sourceTree = "<group>"; };
+		30ADDF283027539400F26FFB /* ArchiveDocumentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDocumentService.swift; sourceTree = "<group>"; };
+		30ADDF2A3028EAAA00F26FFB /* ArchiveDocumentActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDocumentActions.swift; sourceTree = "<group>"; };
+		30ADDF2C3028EBAB00F26FFB /* QuickLookManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookManager.swift; sourceTree = "<group>"; };
+		30ADDF2E3028EFD400F26FFB /* ArchiveFileMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFileMover.swift; sourceTree = "<group>"; };
+		30ADDF303028F02600F26FFB /* ArchiveMoveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveMoveSheet.swift; sourceTree = "<group>"; };
+		30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDestinationResolver.swift; sourceTree = "<group>"; };
+		30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFolderPickerSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -425,6 +437,9 @@
 				303B7AC0302491D9001D99ED /* ArchiveNode.swift */,
 				303B7AC930249A84001D99ED /* ArchiveService.swift */,
 				303B7AD330269374001D99ED /* ArchiveWorkspaceStore.swift */,
+				30ADDF2A3028EAAA00F26FFB /* ArchiveDocumentActions.swift */,
+				30ADDF2E3028EFD400F26FFB /* ArchiveFileMover.swift */,
+				30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */,
 			);
 			path = Archive;
 			sourceTree = "<group>";
@@ -432,8 +447,11 @@
 		303B7AC43024951D001D99ED /* Archive */ = {
 			isa = PBXGroup;
 			children = (
-				303B7AC530249534001D99ED /* ArchiveExplorerView.swift */,
 				303B7AC73024968E001D99ED /* ArchiveView.swift */,
+				30ADDF283027539400F26FFB /* ArchiveDocumentService.swift */,
+				30ADDF2C3028EBAB00F26FFB /* QuickLookManager.swift */,
+				30ADDF303028F02600F26FFB /* ArchiveMoveSheet.swift */,
+				30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */,
 			);
 			path = Archive;
 			sourceTree = "<group>";
@@ -522,7 +540,9 @@
 				303B7A833020F6EB001D99ED /* LearningManager.swift in Sources */,
 				303B7A41301F7B7E001D99ED /* PDFTextExtractionService.swift in Sources */,
 				303B7A4D301F8168001D99ED /* EmptySelectionView.swift in Sources */,
+				30ADDF3330291A2900F26FFB /* ArchiveDestinationResolver.swift in Sources */,
 				303B7AAC302119E3001D99ED /* LearningSettingsView.swift in Sources */,
+				30ADDF293027539400F26FFB /* ArchiveDocumentService.swift in Sources */,
 				303B7A49301F8078001D99ED /* EmptyInboxView.swift in Sources */,
 				303B7A743020F088001D99ED /* AtlasSummaryCard.swift in Sources */,
 				303B7A783020F1B9001D99ED /* AtlasDashboardGrid.swift in Sources */,
@@ -537,6 +557,7 @@
 				303B7A4F301FA8D7001D99ED /* DocumentRowView.swift in Sources */,
 				303B7A51301FAB03001D99ED /* AutoAnalysisService.swift in Sources */,
 				303B7AC83024968E001D99ED /* ArchiveView.swift in Sources */,
+				30ADDF2D3028EBAB00F26FFB /* QuickLookManager.swift in Sources */,
 				303B7A763020F177001D99ED /* AtlasStatusCard.swift in Sources */,
 				303B7A6E3020EF7C001D99ED /* AtlasInfoCard.swift in Sources */,
 				303B7A8B3020F964001D99ED /* LearningListView.swift in Sources */,
@@ -547,7 +568,9 @@
 				303B7ACA30249A84001D99ED /* ArchiveService.swift in Sources */,
 				303B7A873020F797001D99ED /* AtlasLearningCard.swift in Sources */,
 				303B7A7A3020F22D001D99ED /* AtlasQuickFactsCard.swift in Sources */,
+				30ADDF3530291ECB00F26FFB /* ArchiveFolderPickerSheet.swift in Sources */,
 				303B7A3B301F765F001D99ED /* PDFPreviewView.swift in Sources */,
+				30ADDF2B3028EAAA00F26FFB /* ArchiveDocumentActions.swift in Sources */,
 				303B7AC330249433001D99ED /* ArchiveViewModel.swift in Sources */,
 				303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
@@ -562,6 +585,7 @@
 				303B7A59301FD4FE001D99ED /* DocumentClassifier.swift in Sources */,
 				303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
+				30ADDF313028F02600F26FFB /* ArchiveMoveSheet.swift in Sources */,
 				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
@@ -569,6 +593,7 @@
 				303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */,
 				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
 				303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */,
+				30ADDF2F3028EFD400F26FFB /* ArchiveFileMover.swift in Sources */,
 				303B7AD23026932D001D99ED /* ArchiveWorkspace.swift in Sources */,
 				303B7A9D302111A1001D99ED /* SettingsManager.swift in Sources */,
 				303B7A57301FD485001D99ED /* CompanyRecognizer.swift in Sources */,
@@ -577,7 +602,6 @@
 				303B7AAE30211A72001D99ED /* LearningMatcher.swift in Sources */,
 				303B7A55301FACA8001D99ED /* KnowledgeBase.swift in Sources */,
 				303B7A43301F7CF8001D99ED /* AtlasAnalyzer.swift in Sources */,
-				303B7AC630249534001D99ED /* ArchiveExplorerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
