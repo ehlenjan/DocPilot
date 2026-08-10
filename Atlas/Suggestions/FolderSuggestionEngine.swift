@@ -26,9 +26,12 @@ struct FolderSuggestionEngine {
 
     init(
         knowledgeBase: KnowledgeBase,
-        learningManager: LearningManager = LearningManager(),
-        learningMatcher: LearningMatcher = LearningMatcher()
+        learningManager: LearningManager =
+            LearningManager(),
+        learningMatcher: LearningMatcher =
+            LearningMatcher()
     ) {
+
         self.knowledgeBase =
             knowledgeBase
 
@@ -46,9 +49,14 @@ struct FolderSuggestionEngine {
         text: String
     ) -> FolderSuggestion? {
 
-        // Neu gelernte Zuordnungen immer
-        // vor einer Empfehlung nachladen.
         learningManager.reload()
+
+        learningManager
+            .removeInvalidEntries(
+                validFolders:
+                    knowledgeBase
+                        .archiveFolders
+            )
 
         let ruleSuggestion =
             bestRuleSuggestion(
@@ -56,9 +64,6 @@ struct FolderSuggestionEngine {
                 text: text
             )
 
-        // Wenn der Empfänger erkannt wurde,
-        // dürfen nur Lernerfahrungen desselben
-        // Archivbereichs berücksichtigt werden.
         let learningEntries =
             filteredLearningEntries(
                 for: analysis
@@ -71,14 +76,45 @@ struct FolderSuggestionEngine {
                     learningEntries
             )
 
-        return combine(
-            ruleSuggestion:
-                ruleSuggestion,
-            learningMatch:
-                learningMatch,
-            analysis:
-                analysis
-        )
+        let suggestion =
+            combine(
+                ruleSuggestion:
+                    ruleSuggestion,
+                learningMatch:
+                    learningMatch,
+                analysis:
+                    analysis
+            )
+
+        // Letzte Sicherheitsstufe:
+        // Niemals einen Ordner zurückgeben,
+        // den Atlas nicht mehr kennt.
+        guard let suggestion
+        else {
+            return nil
+        }
+
+        guard
+            isValidFolder(
+                area:
+                    suggestion.area,
+                folder:
+                    suggestion.folder
+            )
+        else {
+
+            print(
+                """
+                ⚠️ Atlas hat ungültigen Zielordner verworfen:
+                \(suggestion.displayPath)
+                Quelle: \(suggestion.ruleName)
+                """
+            )
+
+            return nil
+        }
+
+        return suggestion
     }
 
     // MARK: - Learning Area Filter
@@ -87,16 +123,53 @@ struct FolderSuggestionEngine {
         for analysis: AtlasAnalysis
     ) -> [LearningEntry] {
 
-        guard let recipientArea =
-            analysis.recipientArea
-        else {
-            return learningManager.entries
+        var entries =
+            learningManager.entries
+
+        // MARK: Recipient Area
+
+        if let recipientArea =
+            analysis.recipientArea {
+
+            entries =
+                entries.filter {
+
+                    $0.archiveArea ==
+                        recipientArea
+                }
         }
 
-        return learningManager.entries.filter {
-            $0.archiveArea ==
-                recipientArea
-        }
+        // MARK: Existing Folders Only
+
+        // Alte gelernte Zuordnungen auf inzwischen
+        // entfernte oder umbenannte Ordner dürfen
+        // nicht mehr am Matching teilnehmen.
+        entries =
+            entries.filter {
+                entry in
+
+                let valid =
+                    isValidFolder(
+                        area:
+                            entry.archiveArea,
+                        folder:
+                            entry.folder
+                    )
+
+                if !valid {
+
+                    print(
+                        """
+                        ⚠️ Veraltete Atlas-Lernzuordnung ignoriert:
+                        \(entry.archiveArea.rawValue) → \(entry.folder)
+                        """
+                    )
+                }
+
+                return valid
+            }
+
+        return entries
     }
 
     // MARK: - Rules
@@ -109,10 +182,12 @@ struct FolderSuggestionEngine {
         let candidates =
             knowledgeBase
                 .folderRules
-                .compactMap { rule in
+                .compactMap {
+                    rule in
 
                     evaluate(
-                        rule: rule,
+                        rule:
+                            rule,
                         analysis:
                             analysis,
                         text:
@@ -121,6 +196,7 @@ struct FolderSuggestionEngine {
                 }
 
         return candidates.max {
+
             $0.confidence <
                 $1.confidence
         }
@@ -147,6 +223,17 @@ struct FolderSuggestionEngine {
 
         let learnedEntry =
             learningMatch.entry
+
+        // Noch einmal absichern, falls sich die
+        // KnowledgeBase zwischen Matching und
+        // Kombination geändert haben sollte.
+        let learnedFolderIsValid =
+            isValidFolder(
+                area:
+                    learnedEntry.archiveArea,
+                folder:
+                    learnedEntry.folder
+            )
 
         let learningConfidence =
             confidence(
@@ -217,8 +304,37 @@ struct FolderSuggestionEngine {
             )
         }
 
-        // Keine passende Regel vorhanden:
-        // gelernte Zuordnung verwenden.
+        // MARK: Invalid Learned Folder
+
+        // Wenn die gelernte Zuordnung inzwischen
+        // auf einen nicht mehr vorhandenen Ordner
+        // zeigt, darf sie niemals gewinnen.
+        if !learnedFolderIsValid {
+
+            if let ruleSuggestion {
+
+                return FolderSuggestion(
+                    ruleName:
+                        ruleSuggestion.ruleName,
+                    area:
+                        ruleSuggestion.area,
+                    folder:
+                        ruleSuggestion.folder,
+                    confidence:
+                        ruleSuggestion.confidence,
+                    reasons:
+                        ruleSuggestion.reasons
+                        + [
+                            "Eine veraltete gelernte Zuordnung wurde ignoriert"
+                        ]
+                )
+            }
+
+            return nil
+        }
+
+        // MARK: Learning Only
+
         guard let ruleSuggestion
         else {
 
@@ -233,6 +349,9 @@ struct FolderSuggestionEngine {
                     learningConfidence,
                 reasons:
                     learningReasons
+                    + [
+                        "Zielordner existiert in der aktuellen Archivstruktur"
+                    ]
             )
         }
 
@@ -240,13 +359,13 @@ struct FolderSuggestionEngine {
             ruleSuggestion.area ==
                 learnedEntry.archiveArea
             &&
-            ruleSuggestion.folder
-                .caseInsensitiveCompare(
-                    learnedEntry.folder
-                ) == .orderedSame
+            sameFolderName(
+                ruleSuggestion.folder,
+                learnedEntry.folder
+            )
 
-        // Regel und Lernen zeigen auf
-        // exakt dasselbe Ziel.
+        // MARK: Rule + Learning Agree
+
         if learnedPathMatchesRule {
 
             let bonus =
@@ -280,7 +399,8 @@ struct FolderSuggestionEngine {
             )
         }
 
-        // Lernen ist stärker.
+        // MARK: Learning Stronger
+
         if learningConfidence >
             ruleSuggestion.confidence {
 
@@ -302,7 +422,8 @@ struct FolderSuggestionEngine {
             )
         }
 
-        // Regel bleibt stärker.
+        // MARK: Rule Stronger
+
         return FolderSuggestion(
             ruleName:
                 ruleSuggestion.ruleName,
@@ -325,10 +446,8 @@ struct FolderSuggestionEngine {
     // MARK: - Recipient Reason
 
     private func addRecipientReason(
-        to suggestion:
-            FolderSuggestion?,
-        analysis:
-            AtlasAnalysis
+        to suggestion: FolderSuggestion?,
+        analysis: AtlasAnalysis
     ) -> FolderSuggestion? {
 
         guard let suggestion
@@ -398,11 +517,33 @@ struct FolderSuggestionEngine {
             return nil
         }
 
-        // MARK: Empfänger als Bereichs-Gate
+        // MARK: Folder Must Exist
 
-        // Wenn Atlas den Empfänger sicher erkannt hat,
-        // darf keine Regel eines anderen Betriebs
-        // mehr gewinnen.
+        // Ganz wichtig:
+        // Eine Regel, deren Zielordner nicht mehr
+        // existiert, wird gar nicht erst bewertet.
+        guard
+            isValidFolder(
+                area:
+                    area,
+                folder:
+                    rule.folder
+            )
+        else {
+
+            print(
+                """
+                ⚠️ Ungültige Atlas-Regel ignoriert:
+                \(rule.name)
+                Ziel: \(area.rawValue) → \(rule.folder)
+                """
+            )
+
+            return nil
+        }
+
+        // MARK: Recipient Area Gate
+
         if let recipientArea =
             analysis.recipientArea,
            area != recipientArea {
@@ -416,35 +557,42 @@ struct FolderSuggestionEngine {
         var reasons:
             [String] = []
 
-        // Empfänger ist für deine Archivstruktur
-        // das wichtigste Merkmal.
+        // MARK: Recipient
+
         if let recipientArea =
             analysis.recipientArea,
            recipientArea == area {
 
-            score += 0.45
+            score +=
+                0.45
 
             reasons.append(
                 "Empfänger \(recipientArea.rawValue) passt zum Archivbereich"
             )
         }
 
+        // MARK: Document Type
+
         if rule.matchesDocumentType(
             analysis.documentType
         ) {
 
-            score += 0.30
+            score +=
+                0.30
 
             reasons.append(
                 "Dokumentart \(analysis.documentType.rawValue) passt"
             )
         }
 
+        // MARK: Company
+
         if rule.matchesCompany(
             analysis.sender
         ) {
 
-            score += 0.15
+            score +=
+                0.15
 
             if let sender =
                 analysis.sender {
@@ -455,9 +603,12 @@ struct FolderSuggestionEngine {
             }
         }
 
+        // MARK: Keywords
+
         let matchingKeywords =
             rule.matchingKeywords(
-                in: text
+                in:
+                    text
             )
 
         if !matchingKeywords.isEmpty {
@@ -497,6 +648,71 @@ struct FolderSuggestionEngine {
                 ),
             reasons:
                 reasons
+                + [
+                    "Zielordner wurde gegen die aktuelle Archivstruktur geprüft"
+                ]
         )
+    }
+
+    // MARK: - Folder Validation
+
+    private func isValidFolder(
+        area: ArchiveArea,
+        folder: String
+    ) -> Bool {
+
+        knowledgeBase
+            .archiveFolders
+            .contains {
+                archiveFolder in
+
+                archiveFolder.area ==
+                    area
+                &&
+                sameFolderName(
+                    archiveFolder.name,
+                    folder
+                )
+            }
+    }
+
+    // MARK: - Folder Name Comparison
+
+    private func sameFolderName(
+        _ first: String,
+        _ second: String
+    ) -> Bool {
+
+        normalizeFolderName(
+            first
+        ) ==
+        normalizeFolderName(
+            second
+        )
+    }
+
+    // MARK: - Normalize Folder
+
+    private func normalizeFolderName(
+        _ value: String
+    ) -> String {
+
+        value
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+            .folding(
+                options: [
+                    .caseInsensitive,
+                    .diacriticInsensitive
+                ],
+                locale:
+                    Locale(
+                        identifier:
+                            "de_DE"
+                    )
+            )
+            .lowercased()
     }
 }

@@ -29,22 +29,44 @@ final class InboxViewModel {
     private let archiveFileMover =
         ArchiveFileMover()
 
-    private let folderSuggestionEngine:
-        FolderSuggestionEngine = {
+    // MARK: - Knowledge Base
 
-        let knowledgeBase:
+    private let knowledgeBase:
+        KnowledgeBase
+
+    private let folderSuggestionEngine:
+        FolderSuggestionEngine
+
+    // MARK: - Visual Sender
+
+    private let senderVisualRecognizer:
+        SenderVisualRecognizer
+
+    private let visualSenderLearningManager =
+        VisualSenderLearningManager()
+
+    private let learnedCompanyStore =
+        LearnedCompanyStore()
+
+    // MARK: - Init
+
+    init() {
+
+        let loadedKnowledgeBase:
             KnowledgeBase
 
         do {
-            knowledgeBase =
+
+            loadedKnowledgeBase =
                 try KnowledgeBase.load()
+
         } catch {
 
             print(
-                "KnowledgeBase konnte für Ordnervorschläge nicht geladen werden: \(error.localizedDescription)"
+                "KnowledgeBase konnte nicht geladen werden: \(error.localizedDescription)"
             )
 
-            knowledgeBase =
+            loadedKnowledgeBase =
                 KnowledgeBase(
                     companies: [],
                     documentTypes: [],
@@ -52,10 +74,23 @@ final class InboxViewModel {
                 )
         }
 
-        return FolderSuggestionEngine(
-            knowledgeBase: knowledgeBase
-        )
-    }()
+        knowledgeBase =
+            loadedKnowledgeBase
+
+        folderSuggestionEngine =
+            FolderSuggestionEngine(
+                knowledgeBase:
+                    loadedKnowledgeBase
+            )
+
+        senderVisualRecognizer =
+            SenderVisualRecognizer(
+                knowledgeBase:
+                    loadedKnowledgeBase
+            )
+    }
+
+    // MARK: - Documents
 
     var documents:
         [DocumentRecord] = []
@@ -63,7 +98,10 @@ final class InboxViewModel {
     var errorMessage:
         String?
 
-    var extractedText = ""
+    // MARK: - Analysis
+
+    var extractedText =
+        ""
 
     var textExtractionMessage:
         String?
@@ -80,9 +118,108 @@ final class InboxViewModel {
     var isArchiving =
         false
 
-    // Manuell gewähltes Archivziel
+    // MARK: - Manual Archive Destination
+
     var manualArchiveDestinationURL:
         URL?
+
+    // MARK: - Visual Sender State
+
+    /// Absender, den Atlas anhand des
+    /// Dokumentkopfs vorschlägt.
+    var visualSenderSuggestion:
+        String?
+
+    /// Visuelle Signatur des aktuell
+    /// ausgewählten Dokuments.
+    var visualSenderSignature:
+        VisualFeatureSignature?
+
+    /// Wie oft ein ähnlicher Dokumentkopf
+    /// bereits derselben Firma bestätigt wurde.
+    var visualSenderConfirmationCount =
+        0
+
+    /// Bei true soll die Oberfläche den
+    /// Benutzer nach dem Absender fragen.
+    var visualSenderNeedsConfirmation =
+        false
+
+    /// Ähnlichkeit mit dem besten bereits
+    /// gelernten visuellen Eintrag.
+    var visualSenderSimilarity:
+        Double?
+
+    /// Firmen für die spätere
+    /// "Absender bestätigen"-Auswahl.
+    ///
+    /// Enthält sowohl Firmen aus der KnowledgeBase
+    /// als auch Firmen, die der Benutzer neu gelernt hat.
+    var availableVisualSenderCompanies:
+        [String] {
+
+        let knowledgeCompanies =
+            knowledgeBase
+                .companies
+                .map(\.name)
+
+        let learnedCompanies =
+            learnedCompanyStore
+                .load()
+
+        var result:
+            [String] = []
+
+        var known:
+            Set<String> = []
+
+        for company in
+            knowledgeCompanies + learnedCompanies {
+
+            let cleaned =
+                company
+                    .trimmingCharacters(
+                        in:
+                            .whitespacesAndNewlines
+                    )
+
+            guard
+                !cleaned.isEmpty
+            else {
+                continue
+            }
+
+            let key =
+                normalizeCompany(
+                    cleaned
+                )
+
+            guard
+                !known.contains(
+                    key
+                )
+            else {
+                continue
+            }
+
+            known.insert(
+                key
+            )
+
+            result.append(
+                cleaned
+            )
+        }
+
+        return result.sorted {
+
+            $0.localizedStandardCompare(
+                $1
+            ) == .orderedAscending
+        }
+    }
+
+    // MARK: - Stored Data
 
     private var analysesByURL:
         [URL: AtlasAnalysis] = [:]
@@ -90,7 +227,34 @@ final class InboxViewModel {
     private var folderSuggestionsByURL:
         [URL: FolderSuggestion] = [:]
 
-    var folderURL: URL? {
+    /// Extrahierter Text wird gespeichert,
+    /// damit nach einer Absenderkorrektur der
+    /// Archivvorschlag neu berechnet werden kann.
+    private var extractedTextsByURL:
+        [URL: String] = [:]
+
+    // MARK: Visual State Per Document
+
+    private var visualSignaturesByURL:
+        [URL: VisualFeatureSignature] = [:]
+
+    private var visualSenderSuggestionsByURL:
+        [URL: String] = [:]
+
+    private var visualSenderConfirmationCountsByURL:
+        [URL: Int] = [:]
+
+    private var visualSenderNeedsConfirmationByURL:
+        [URL: Bool] = [:]
+
+    private var visualSenderSimilaritiesByURL:
+        [URL: Double] = [:]
+
+    // MARK: - Folder URL
+
+    var folderURL:
+        URL? {
+
         folderStore.folderURL
     }
 
@@ -99,7 +263,11 @@ final class InboxViewModel {
     func selectFolder(
         _ url: URL
     ) {
-        folderStore.saveFolder(url)
+
+        folderStore.saveFolder(
+            url
+        )
+
         loadDocuments()
     }
 
@@ -107,10 +275,14 @@ final class InboxViewModel {
 
     func loadDocuments() {
 
-        errorMessage = nil
+        errorMessage =
+            nil
 
         guard let folderURL else {
-            documents = []
+
+            documents =
+                []
+
             return
         }
 
@@ -119,7 +291,8 @@ final class InboxViewModel {
             let files =
                 try FileManager.default
                     .contentsOfDirectory(
-                        at: folderURL,
+                        at:
+                            folderURL,
                         includingPropertiesForKeys: [
                             .isRegularFileKey
                         ],
@@ -131,18 +304,26 @@ final class InboxViewModel {
             documents =
                 files
                     .filter {
+
                         $0.pathExtension
-                            .lowercased() == "pdf"
+                            .lowercased()
+                        ==
+                        "pdf"
                     }
                     .sorted {
+
                         $0.lastPathComponent
                             .localizedStandardCompare(
                                 $1.lastPathComponent
-                            ) == .orderedAscending
+                            )
+                        ==
+                        .orderedAscending
                     }
                     .map {
+
                         DocumentRecord(
-                            sourceURL: $0
+                            sourceURL:
+                                $0
                         )
                     }
 
@@ -155,6 +336,7 @@ final class InboxViewModel {
 
             analysesByURL =
                 analysesByURL.filter {
+
                     availableURLs.contains(
                         $0.key
                     )
@@ -162,6 +344,55 @@ final class InboxViewModel {
 
             folderSuggestionsByURL =
                 folderSuggestionsByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            extractedTextsByURL =
+                extractedTextsByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSignaturesByURL =
+                visualSignaturesByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSenderSuggestionsByURL =
+                visualSenderSuggestionsByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSenderConfirmationCountsByURL =
+                visualSenderConfirmationCountsByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSenderNeedsConfirmationByURL =
+                visualSenderNeedsConfirmationByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSenderSimilaritiesByURL =
+                visualSenderSimilaritiesByURL.filter {
+
                     availableURLs.contains(
                         $0.key
                     )
@@ -171,7 +402,8 @@ final class InboxViewModel {
 
         } catch {
 
-            documents = []
+            documents =
+                []
 
             errorMessage =
                 "Die Dateien konnten nicht gelesen werden: \(error.localizedDescription)"
@@ -184,18 +416,21 @@ final class InboxViewModel {
 
         autoAnalysisService
             .analyzeIfNeeded(
-                documents: documents,
+                documents:
+                    documents,
                 alreadyAnalyzed: {
                     document in
 
                     self.analysis(
-                        for: document
+                        for:
+                            document
                     ) != nil
                 },
                 analyze: {
                     document in
 
                     Task {
+
                         await self
                             .analyzeSilently(
                                 document:
@@ -220,35 +455,60 @@ final class InboxViewModel {
                                 document.sourceURL
                         )
 
-            let newAnalysis =
+            extractedTextsByURL[
+                document.sourceURL
+            ] =
+                text
+
+            let textAnalysis =
                 atlasAnalyzer.analyze(
-                    text: text
+                    text:
+                        text
+                )
+
+            // Zusätzlich den Dokumentkopf
+            // visuell untersuchen.
+            let finalAnalysis =
+                await applyVisualSenderAnalysis(
+                    to:
+                        textAnalysis,
+                    document:
+                        document
                 )
 
             let newFolderSuggestion =
                 folderSuggestionEngine
                     .suggestFolder(
                         for:
-                            newAnalysis,
+                            finalAnalysis,
                         text:
                             text
                     )
 
             analysesByURL[
                 document.sourceURL
-            ] = newAnalysis
+            ] =
+                finalAnalysis
 
             folderSuggestionsByURL[
                 document.sourceURL
-            ] = newFolderSuggestion
+            ] =
+                newFolderSuggestion
 
+            // Nur übernehmen, wenn gerade noch
+            // keine andere Analyse ausgewählt ist.
             if analysis == nil {
 
                 analysis =
-                    newAnalysis
+                    finalAnalysis
 
                 folderSuggestion =
                     newFolderSuggestion
+
+                restoreVisualSenderState(
+                    for:
+                        document.sourceURL
+                )
             }
 
         } catch {
@@ -265,6 +525,7 @@ final class InboxViewModel {
     ) {
 
         Task {
+
             await analyzeAsync(
                 document:
                     document
@@ -276,17 +537,31 @@ final class InboxViewModel {
         document: DocumentRecord
     ) async {
 
-        isAnalyzing = true
+        isAnalyzing =
+            true
 
         defer {
-            isAnalyzing = false
+
+            isAnalyzing =
+                false
         }
 
-        extractedText = ""
-        textExtractionMessage = nil
-        analysis = nil
-        folderSuggestion = nil
-        manualArchiveDestinationURL = nil
+        extractedText =
+            ""
+
+        textExtractionMessage =
+            nil
+
+        analysis =
+            nil
+
+        folderSuggestion =
+            nil
+
+        manualArchiveDestinationURL =
+            nil
+
+        clearCurrentVisualSenderState()
 
         do {
 
@@ -301,42 +576,615 @@ final class InboxViewModel {
             extractedText =
                 text
 
+            extractedTextsByURL[
+                document.sourceURL
+            ] =
+                text
+
             textExtractionMessage =
                 "\(text.count) Zeichen aus dem PDF gelesen."
 
-            let newAnalysis =
+            let textAnalysis =
                 atlasAnalyzer.analyze(
-                    text: text
+                    text:
+                        text
+                )
+
+            let finalAnalysis =
+                await applyVisualSenderAnalysis(
+                    to:
+                        textAnalysis,
+                    document:
+                        document
                 )
 
             let newFolderSuggestion =
                 folderSuggestionEngine
                     .suggestFolder(
                         for:
-                            newAnalysis,
+                            finalAnalysis,
                         text:
                             text
                     )
 
             analysis =
-                newAnalysis
+                finalAnalysis
 
             folderSuggestion =
                 newFolderSuggestion
 
             analysesByURL[
                 document.sourceURL
-            ] = newAnalysis
+            ] =
+                finalAnalysis
 
             folderSuggestionsByURL[
                 document.sourceURL
-            ] = newFolderSuggestion
+            ] =
+                newFolderSuggestion
+
+            restoreVisualSenderState(
+                for:
+                    document.sourceURL
+            )
 
         } catch {
 
             textExtractionMessage =
                 error.localizedDescription
         }
+    }
+
+    // MARK: - Visual Sender Analysis
+
+    private func applyVisualSenderAnalysis(
+        to baseAnalysis: AtlasAnalysis,
+        document: DocumentRecord
+    ) async -> AtlasAnalysis {
+
+        let url =
+            document.sourceURL
+
+        let visualResult =
+            await senderVisualRecognizer
+                .analyze(
+                    pdfURL:
+                        url
+                )
+
+        guard let signature =
+            visualResult.signature
+        else {
+
+            clearStoredVisualSenderState(
+                for:
+                    url
+            )
+
+            return baseAnalysis
+        }
+
+        visualSignaturesByURL[
+            url
+        ] =
+            signature
+
+        // Ein anderer Manager kann inzwischen
+        // neue Bestätigungen gespeichert haben.
+        visualSenderLearningManager
+            .reload()
+
+        let learnedMatch =
+            visualSenderLearningManager
+                .matchInformation(
+                    for:
+                        signature
+                )
+
+        var suggestedCompany =
+            visualResult.detectedCompany
+
+        var confirmationCount =
+            0
+
+        var needsConfirmation =
+            true
+
+        var similarity:
+            Double?
+
+        var updatedAnalysis =
+            baseAnalysis
+
+        if let learnedMatch {
+
+            suggestedCompany =
+                learnedMatch
+                    .entry
+                    .company
+
+            confirmationCount =
+                learnedMatch
+                    .entry
+                    .confirmationCount
+
+            similarity =
+                learnedMatch
+                    .similarity
+
+            let ocrCompany =
+                visualResult
+                    .detectedCompany
+
+            let visualSignalsConflict:
+                Bool
+
+            if let ocrCompany {
+
+                visualSignalsConflict =
+                    !sameCompany(
+                        ocrCompany,
+                        learnedMatch
+                            .entry
+                            .company
+                    )
+
+            } else {
+
+                visualSignalsConflict =
+                    false
+            }
+
+            // Erst ab 3 Bestätigungen und nur
+            // ohne Widerspruch im Kopfbereich
+            // wird der Absender automatisch ersetzt.
+            if learnedMatch
+                .entry
+                .canUseAutomatically
+                &&
+                !visualSignalsConflict {
+
+                needsConfirmation =
+                    false
+
+                updatedAnalysis =
+                    replacingSender(
+                        in:
+                            baseAnalysis,
+                        with:
+                            learnedMatch
+                                .entry
+                                .company,
+                        reason:
+                            "Absender \(learnedMatch.entry.company) wurde visuell gelernt (\(learnedMatch.entry.confirmationCount)× bestätigt)"
+                    )
+
+            } else {
+
+                needsConfirmation =
+                    true
+            }
+
+        } else {
+
+            // Noch unbekannter Dokumentkopf.
+            // Auch wenn OCR bereits eine Firma
+            // vermutet, soll sie zunächst vom
+            // Benutzer bestätigt werden.
+            confirmationCount =
+                0
+
+            similarity =
+                nil
+
+            needsConfirmation =
+                true
+        }
+
+        if let suggestedCompany {
+
+            visualSenderSuggestionsByURL[
+                url
+            ] =
+                suggestedCompany
+
+        } else {
+
+            visualSenderSuggestionsByURL
+                .removeValue(
+                    forKey:
+                        url
+                )
+        }
+
+        visualSenderConfirmationCountsByURL[
+            url
+        ] =
+            confirmationCount
+
+        visualSenderNeedsConfirmationByURL[
+            url
+        ] =
+            needsConfirmation
+
+        if let similarity {
+
+            visualSenderSimilaritiesByURL[
+                url
+            ] =
+                similarity
+
+        } else {
+
+            visualSenderSimilaritiesByURL
+                .removeValue(
+                    forKey:
+                        url
+                )
+        }
+
+        return updatedAnalysis
+    }
+
+    // MARK: - Confirm Visual Sender
+
+    /// Benutzer bestätigt den Absender für das
+    /// aktuelle Dokument.
+    ///
+    /// Die Bestätigung wird sofort für dieses
+    /// Dokument verwendet. Automatisch auf andere
+    /// Dokumente übertragen wird sie aber erst
+    /// nach drei Bestätigungen.
+    @discardableResult
+    func confirmVisualSender(
+        company: String,
+        for document: DocumentRecord
+    ) -> Bool {
+
+        let cleanedCompany =
+            company
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        guard
+            !cleanedCompany.isEmpty,
+            let signature =
+                visualSignaturesByURL[
+                    document.sourceURL
+                ]
+        else {
+
+            return false
+        }
+
+        // Auch frei eingegebene Firmen dauerhaft
+        // in die allgemeine Firmenauswahl übernehmen.
+        learnedCompanyStore.add(
+            cleanedCompany
+        )
+
+        visualSenderLearningManager
+            .reload()
+
+        visualSenderLearningManager
+            .confirm(
+                company:
+                    cleanedCompany,
+                signature:
+                    signature
+            )
+
+        let match =
+            visualSenderLearningManager
+                .matchInformation(
+                    for:
+                        signature
+                )
+
+        let confirmationCount =
+            match?
+                .entry
+                .confirmationCount
+            ?? 1
+
+        visualSenderSuggestionsByURL[
+            document.sourceURL
+        ] =
+            cleanedCompany
+
+        visualSenderConfirmationCountsByURL[
+            document.sourceURL
+        ] =
+            confirmationCount
+
+        // Für DIESES Dokument hat der Benutzer
+        // gerade bestätigt. Daher keine weitere
+        // Rückfrage nötig.
+        visualSenderNeedsConfirmationByURL[
+            document.sourceURL
+        ] =
+            false
+
+        if let similarity =
+            match?.similarity {
+
+            visualSenderSimilaritiesByURL[
+                document.sourceURL
+            ] =
+                similarity
+        }
+
+        // Aktuelle Analyse holen.
+        guard let currentAnalysis =
+            analysesByURL[
+                document.sourceURL
+            ] ?? analysis
+        else {
+
+            restoreVisualSenderState(
+                for:
+                    document.sourceURL
+            )
+
+            return true
+        }
+
+        let correctedAnalysis =
+            replacingSender(
+                in:
+                    currentAnalysis,
+                with:
+                    cleanedCompany,
+                reason:
+                    "Absender \(cleanedCompany) wurde vom Benutzer visuell bestätigt (\(confirmationCount)× bestätigt)"
+            )
+
+        analysesByURL[
+            document.sourceURL
+        ] =
+            correctedAnalysis
+
+        // Zielordner nach der Absenderkorrektur
+        // sofort neu berechnen.
+        if let storedText =
+            extractedTextsByURL[
+                document.sourceURL
+            ] {
+
+            let correctedFolderSuggestion =
+                folderSuggestionEngine
+                    .suggestFolder(
+                        for:
+                            correctedAnalysis,
+                        text:
+                            storedText
+                    )
+
+            folderSuggestionsByURL[
+                document.sourceURL
+            ] =
+                correctedFolderSuggestion
+
+            if analysisBelongsTo(
+                document
+            ) {
+
+                analysis =
+                    correctedAnalysis
+
+                folderSuggestion =
+                    correctedFolderSuggestion
+            }
+
+        } else if analysisBelongsTo(
+            document
+        ) {
+
+            analysis =
+                correctedAnalysis
+        }
+
+        restoreVisualSenderState(
+            for:
+                document.sourceURL
+        )
+
+        return true
+    }
+
+    // MARK: - Visual Sender Helpers
+
+    private func replacingSender(
+        in analysis: AtlasAnalysis,
+        with sender: String,
+        reason: String
+    ) -> AtlasAnalysis {
+
+        var reasons =
+            analysis.reasons.filter {
+
+                !$0
+                    .localizedCaseInsensitiveContains(
+                        "Absender "
+                    )
+            }
+
+        reasons.append(
+            reason
+        )
+
+        return AtlasAnalysis(
+            documentType:
+                analysis.documentType,
+            detectedDate:
+                analysis.detectedDate,
+            sender:
+                sender,
+            recipientArea:
+                analysis.recipientArea,
+            keywords:
+                analysis.keywords,
+            confidence:
+                analysis.confidence,
+            reasons:
+                reasons
+        )
+    }
+
+    private func sameCompany(
+        _ first: String,
+        _ second: String
+    ) -> Bool {
+
+        normalizeCompany(
+            first
+        )
+        ==
+        normalizeCompany(
+            second
+        )
+    }
+
+    private func normalizeCompany(
+        _ value: String
+    ) -> String {
+
+        value
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+            .folding(
+                options: [
+                    .caseInsensitive,
+                    .diacriticInsensitive
+                ],
+                locale:
+                    Locale(
+                        identifier:
+                            "de_DE"
+                    )
+            )
+            .lowercased()
+    }
+
+    private func restoreVisualSenderState(
+        for url: URL
+    ) {
+
+        visualSenderSignature =
+            visualSignaturesByURL[
+                url
+            ]
+
+        visualSenderSuggestion =
+            visualSenderSuggestionsByURL[
+                url
+            ]
+
+        visualSenderConfirmationCount =
+            visualSenderConfirmationCountsByURL[
+                url
+            ]
+            ?? 0
+
+        visualSenderNeedsConfirmation =
+            visualSenderNeedsConfirmationByURL[
+                url
+            ]
+            ?? false
+
+        visualSenderSimilarity =
+            visualSenderSimilaritiesByURL[
+                url
+            ]
+    }
+
+    private func clearCurrentVisualSenderState() {
+
+        visualSenderSuggestion =
+            nil
+
+        visualSenderSignature =
+            nil
+
+        visualSenderConfirmationCount =
+            0
+
+        visualSenderNeedsConfirmation =
+            false
+
+        visualSenderSimilarity =
+            nil
+    }
+
+    private func clearStoredVisualSenderState(
+        for url: URL
+    ) {
+
+        visualSignaturesByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+
+        visualSenderSuggestionsByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+
+        visualSenderConfirmationCountsByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+
+        visualSenderNeedsConfirmationByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+
+        visualSenderSimilaritiesByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+    }
+
+    private func analysisBelongsTo(
+        _ document: DocumentRecord
+    ) -> Bool {
+
+        guard let storedAnalysis =
+            analysesByURL[
+                document.sourceURL
+            ]
+        else {
+            return false
+        }
+
+        guard let currentAnalysis =
+            analysis
+        else {
+            return false
+        }
+
+        return
+            storedAnalysis.documentType ==
+                currentAnalysis.documentType
+            &&
+            storedAnalysis.detectedDate ==
+                currentAnalysis.detectedDate
+            &&
+            storedAnalysis.sender ==
+                currentAnalysis.sender
+            &&
+            storedAnalysis.recipientArea ==
+                currentAnalysis.recipientArea
     }
 
     // MARK: - Stored Analysis
@@ -368,7 +1216,9 @@ final class InboxViewModel {
             nil
 
         guard let document else {
+
             clearAnalysis()
+
             return
         }
 
@@ -382,22 +1232,41 @@ final class InboxViewModel {
                 document.sourceURL
             ]
 
-        extractedText = ""
+        extractedText =
+            ""
 
         textExtractionMessage =
             analysis == nil
             ? nil
             : "Analyse ist für dieses Dokument bereits vorhanden."
+
+        restoreVisualSenderState(
+            for:
+                document.sourceURL
+        )
     }
 
     func clearAnalysis() {
 
-        extractedText = ""
-        textExtractionMessage = nil
-        analysis = nil
-        folderSuggestion = nil
-        isAnalyzing = false
-        manualArchiveDestinationURL = nil
+        extractedText =
+            ""
+
+        textExtractionMessage =
+            nil
+
+        analysis =
+            nil
+
+        folderSuggestion =
+            nil
+
+        isAnalyzing =
+            false
+
+        manualArchiveDestinationURL =
+            nil
+
+        clearCurrentVisualSenderState()
     }
 
     // MARK: - Manual Archive Destination
@@ -510,7 +1379,8 @@ final class InboxViewModel {
 
             guard
                 destinationPath ==
-                    rootPath ||
+                    rootPath
+                ||
                 destinationPath
                     .hasPrefix(
                         rootPath + "/"
@@ -534,10 +1404,9 @@ final class InboxViewModel {
                         )
                 )
 
-            // Das Workspace-Root selbst speichern wir
-            // nicht als Lernziel, weil FolderSuggestion
-            // einen relativen Unterordner erwartet.
-            guard !relativePath.isEmpty else {
+            guard
+                !relativePath.isEmpty
+            else {
                 return nil
             }
 
@@ -591,7 +1460,8 @@ final class InboxViewModel {
         to newFilename: String
     ) -> DocumentRecord? {
 
-        errorMessage = nil
+        errorMessage =
+            nil
 
         let cleanedName =
             newFilename
@@ -600,7 +1470,8 @@ final class InboxViewModel {
                         .whitespacesAndNewlines
                 )
 
-        guard !cleanedName.isEmpty
+        guard
+            !cleanedName.isEmpty
         else {
 
             errorMessage =
@@ -642,20 +1513,53 @@ final class InboxViewModel {
 
         do {
 
+            let sourceURL =
+                document.sourceURL
+
             let previousAnalysis =
                 analysesByURL[
-                    document.sourceURL
+                    sourceURL
                 ]
 
             let previousFolderSuggestion =
                 folderSuggestionsByURL[
-                    document.sourceURL
+                    sourceURL
+                ]
+
+            let previousExtractedText =
+                extractedTextsByURL[
+                    sourceURL
+                ]
+
+            let previousVisualSignature =
+                visualSignaturesByURL[
+                    sourceURL
+                ]
+
+            let previousVisualSenderSuggestion =
+                visualSenderSuggestionsByURL[
+                    sourceURL
+                ]
+
+            let previousConfirmationCount =
+                visualSenderConfirmationCountsByURL[
+                    sourceURL
+                ]
+
+            let previousNeedsConfirmation =
+                visualSenderNeedsConfirmationByURL[
+                    sourceURL
+                ]
+
+            let previousSimilarity =
+                visualSenderSimilaritiesByURL[
+                    sourceURL
                 ]
 
             try FileManager.default
                 .moveItem(
                     at:
-                        document.sourceURL,
+                        sourceURL,
                     to:
                         destinationURL
                 )
@@ -663,14 +1567,25 @@ final class InboxViewModel {
             analysesByURL
                 .removeValue(
                     forKey:
-                        document.sourceURL
+                        sourceURL
                 )
 
             folderSuggestionsByURL
                 .removeValue(
                     forKey:
-                        document.sourceURL
+                        sourceURL
                 )
+
+            extractedTextsByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            clearStoredVisualSenderState(
+                for:
+                    sourceURL
+            )
 
             if let previousAnalysis {
 
@@ -688,10 +1603,59 @@ final class InboxViewModel {
                     previousFolderSuggestion
             }
 
+            if let previousExtractedText {
+
+                extractedTextsByURL[
+                    destinationURL
+                ] =
+                    previousExtractedText
+            }
+
+            if let previousVisualSignature {
+
+                visualSignaturesByURL[
+                    destinationURL
+                ] =
+                    previousVisualSignature
+            }
+
+            if let previousVisualSenderSuggestion {
+
+                visualSenderSuggestionsByURL[
+                    destinationURL
+                ] =
+                    previousVisualSenderSuggestion
+            }
+
+            if let previousConfirmationCount {
+
+                visualSenderConfirmationCountsByURL[
+                    destinationURL
+                ] =
+                    previousConfirmationCount
+            }
+
+            if let previousNeedsConfirmation {
+
+                visualSenderNeedsConfirmationByURL[
+                    destinationURL
+                ] =
+                    previousNeedsConfirmation
+            }
+
+            if let previousSimilarity {
+
+                visualSenderSimilaritiesByURL[
+                    destinationURL
+                ] =
+                    previousSimilarity
+            }
+
             loadDocuments()
 
             return
                 documents.first {
+
                     $0.sourceURL ==
                         destinationURL
                 }
@@ -711,11 +1675,16 @@ final class InboxViewModel {
         document: DocumentRecord
     ) async -> Bool {
 
-        errorMessage = nil
-        isArchiving = true
+        errorMessage =
+            nil
+
+        isArchiving =
+            true
 
         defer {
-            isArchiving = false
+
+            isArchiving =
+                false
         }
 
         let suggestion =
@@ -745,8 +1714,6 @@ final class InboxViewModel {
 
             if let manualArchiveDestinationURL {
 
-                // Benutzer hat das Atlas-Ziel
-                // für dieses Dokument überschrieben.
                 destinationFolderURL =
                     manualArchiveDestinationURL
 
@@ -808,25 +1775,23 @@ final class InboxViewModel {
             let targetURL =
                 destinationFolderURL
 
-            // Wichtig:
-            // Das manuelle Ziel merken wir vor dem Move.
-            // Erst nach erfolgreichem Move wird daraus gelernt.
             let manualDestinationForLearning =
                 manualArchiveDestinationURL
 
-            _ = try await Task.detached(
-                priority:
-                    .userInitiated
-            ) {
+            _ =
+                try await Task.detached(
+                    priority:
+                        .userInitiated
+                ) {
 
-                try fileMover.move(
-                    file:
-                        sourceURL,
-                    to:
-                        targetURL
-                )
-            }
-            .value
+                    try fileMover.move(
+                        file:
+                            sourceURL,
+                        to:
+                            targetURL
+                    )
+                }
+                .value
 
             // Nur ein erfolgreich archiviertes
             // manuell gewähltes Ziel wird gelernt.
@@ -852,10 +1817,22 @@ final class InboxViewModel {
                         document.sourceURL
                 )
 
+            extractedTextsByURL
+                .removeValue(
+                    forKey:
+                        document.sourceURL
+                )
+
+            clearStoredVisualSenderState(
+                for:
+                    document.sourceURL
+            )
+
             manualArchiveDestinationURL =
                 nil
 
             loadDocuments()
+
             clearAnalysis()
 
             return true
@@ -875,13 +1852,37 @@ final class InboxViewModel {
 
         folderStore.removeFolder()
 
-        documents = []
-        analysesByURL = [:]
-        folderSuggestionsByURL = [:]
+        documents =
+            []
+
+        analysesByURL =
+            [:]
+
+        folderSuggestionsByURL =
+            [:]
+
+        extractedTextsByURL =
+            [:]
+
+        visualSignaturesByURL =
+            [:]
+
+        visualSenderSuggestionsByURL =
+            [:]
+
+        visualSenderConfirmationCountsByURL =
+            [:]
+
+        visualSenderNeedsConfirmationByURL =
+            [:]
+
+        visualSenderSimilaritiesByURL =
+            [:]
 
         clearAnalysis()
 
-        errorMessage = nil
+        errorMessage =
+            nil
     }
 
     // MARK: - Filename Builder
@@ -943,7 +1944,8 @@ final class InboxViewModel {
 
         return
             parts.joined(
-                separator: " "
+                separator:
+                    " "
             )
     }
 }

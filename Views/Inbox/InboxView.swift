@@ -18,11 +18,22 @@ struct InboxView: View {
     @State private var filenameDraft =
         ""
 
+    // Merkt sich den letzten Namen,
+    // den Atlas automatisch eingetragen hat.
+    //
+    // So kann Atlas seinen eigenen Vorschlag
+    // später aktualisieren, ohne eine manuelle
+    // Änderung des Benutzers zu überschreiben.
+    @State private var lastAutomaticFilenameSuggestion =
+        ""
+
     @State private var isShowingAtlasHelp =
         false
 
     @State private var isShowingArchiveDestinationPicker =
         false
+
+    // MARK: - Body
 
     var body: some View {
 
@@ -32,7 +43,8 @@ struct InboxView: View {
                 viewModel.folderURL {
 
                 inboxContent(
-                    folderURL: folderURL
+                    folderURL:
+                        folderURL
                 )
 
             } else {
@@ -41,15 +53,20 @@ struct InboxView: View {
                     errorMessage:
                         viewModel.errorMessage,
                     onChooseFolder: {
-                        isChoosingFolder = true
+
+                        isChoosingFolder =
+                            true
                     }
                 )
             }
         }
         .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity,
-            alignment: .topLeading
+            maxWidth:
+                .infinity,
+            maxHeight:
+                .infinity,
+            alignment:
+                .topLeading
         )
 
         // MARK: - Inbox Folder Picker
@@ -102,12 +119,8 @@ struct InboxView: View {
                                 detectedDate,
                             sender:
                                 company,
-
-                            // Der Benutzer hat hier
-                            // den Archivbereich bestätigt.
                             recipientArea:
                                 archiveArea,
-
                             keywords:
                                 keywords,
                             confidence:
@@ -198,9 +211,12 @@ struct InboxView: View {
         // MARK: - Document Selection
 
         .onChange(
-            of: selectedDocument
+            of:
+                selectedDocument
         ) { _, newDocument in
 
+            // Bei einem neuen Dokument beginnen wir
+            // wieder beim tatsächlichen Dateinamen.
             filenameDraft =
                 newDocument?
                     .sourceURL
@@ -208,72 +224,205 @@ struct InboxView: View {
                     .lastPathComponent
                 ?? ""
 
+            lastAutomaticFilenameSuggestion =
+                ""
+
             viewModel.selectAnalysis(
-                for: newDocument
+                for:
+                    newDocument
             )
+
+            // Falls für dieses Dokument bereits
+            // eine Analyse im Cache liegt, kann
+            // Atlas den Namen sofort einsetzen.
+            if let newDocument {
+
+                applyAutomaticFilenameSuggestion(
+                    for:
+                        newDocument
+                )
+            }
         }
 
         // MARK: - Automatic Filename Suggestion
 
         .onChange(
-            of: viewModel.analysis?.confidence
-        ) { _, newConfidence in
+            of:
+                selectedAnalysisSignature
+        ) { _, newSignature in
 
             guard
-                newConfidence != nil,
+                !newSignature.isEmpty,
                 let document =
                     selectedDocument
             else {
                 return
             }
 
-            let currentFilename =
-                document
-                    .sourceURL
-                    .deletingPathExtension()
-                    .lastPathComponent
-
-            let cleanedDraft =
-                filenameDraft
-                    .trimmingCharacters(
-                        in:
-                            .whitespacesAndNewlines
-                    )
-
-            // Nur automatisch ersetzen,
-            // wenn der Benutzer den Namen
-            // noch nicht verändert hat.
-            guard
-                cleanedDraft.isEmpty ||
-                cleanedDraft ==
-                    currentFilename
-            else {
-                return
-            }
-
-            let suggestion =
-                viewModel
-                    .suggestFilename(
-                        for: document
-                    )
-                    .trimmingCharacters(
-                        in:
-                            .whitespacesAndNewlines
-                    )
-
-            guard !suggestion.isEmpty else {
-                return
-            }
-
-            filenameDraft =
-                suggestion
+            applyAutomaticFilenameSuggestion(
+                for:
+                    document
+            )
         }
+    }
+
+    // MARK: - Analysis Signature
+
+    private var selectedAnalysisSignature:
+        String {
+
+        guard
+            let document =
+                selectedDocument,
+            let analysis =
+                viewModel.analysis(
+                    for:
+                        document
+                )
+        else {
+
+            return ""
+        }
+
+        let dateValue =
+            analysis.detectedDate?
+                .timeIntervalSince1970
+            ?? 0
+
+        let senderValue =
+            analysis.sender
+            ?? ""
+
+        let recipientValue =
+            analysis.recipientArea?
+                .rawValue
+            ?? ""
+
+        let keywordValue =
+            analysis.keywords
+                .joined(
+                    separator:
+                        "|"
+                )
+
+        return [
+            document.sourceURL.path,
+            analysis.documentType.rawValue,
+            String(
+                dateValue
+            ),
+            senderValue,
+            recipientValue,
+            keywordValue,
+            String(
+                analysis.confidence
+            )
+        ]
+        .joined(
+            separator:
+                "§"
+        )
+    }
+
+    // MARK: - Automatic Filename
+
+    private func applyAutomaticFilenameSuggestion(
+        for document:
+            DocumentRecord
+    ) {
+
+        // Nur arbeiten, wenn für genau dieses
+        // Dokument tatsächlich eine Analyse vorliegt.
+        guard
+            viewModel.analysis(
+                for:
+                    document
+            ) != nil
+        else {
+
+            return
+        }
+
+        let currentFilename =
+            document
+                .sourceURL
+                .deletingPathExtension()
+                .lastPathComponent
+
+        let cleanedDraft =
+            filenameDraft
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        let cleanedLastAutomaticSuggestion =
+            lastAutomaticFilenameSuggestion
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        // Atlas darf den Namen automatisch setzen,
+        // wenn:
+        //
+        // 1. das Feld leer ist,
+        // 2. noch der echte Originalname drinsteht,
+        // 3. oder der aktuelle Inhalt von Atlas
+        //    selbst stammt.
+        //
+        // Sobald der Benutzer selbst etwas anderes
+        // eingibt, wird nichts mehr überschrieben.
+        let mayReplaceAutomatically =
+            cleanedDraft.isEmpty
+            ||
+            cleanedDraft ==
+                currentFilename
+            ||
+            (
+                !cleanedLastAutomaticSuggestion
+                    .isEmpty
+                &&
+                cleanedDraft ==
+                    cleanedLastAutomaticSuggestion
+            )
+
+        guard mayReplaceAutomatically
+        else {
+
+            return
+        }
+
+        let suggestion =
+            viewModel
+                .suggestFilename(
+                    for:
+                        document
+                )
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        guard
+            !suggestion.isEmpty
+        else {
+
+            return
+        }
+
+        filenameDraft =
+            suggestion
+
+        lastAutomaticFilenameSuggestion =
+            suggestion
     }
 
     // MARK: - Content
 
     private func inboxContent(
-        folderURL: URL
+        folderURL:
+            URL
     ) -> some View {
 
         VStack(spacing: 0) {
@@ -357,15 +506,18 @@ struct InboxView: View {
                     document in
 
                     viewModel.analysis(
-                        for: document
+                        for:
+                            document
                     )
                 },
                 selection:
                     $selectedDocument
             )
             .frame(
-                minWidth: 260,
-                idealWidth: 320
+                minWidth:
+                    260,
+                idealWidth:
+                    320
             )
             .frame(
                 maxHeight:
@@ -378,7 +530,8 @@ struct InboxView: View {
 
             documentPreview
                 .frame(
-                    minWidth: 420,
+                    minWidth:
+                        420,
                     maxHeight:
                         .infinity,
                     alignment:
@@ -389,9 +542,12 @@ struct InboxView: View {
 
             atlasPanel
                 .frame(
-                    minWidth: 360,
-                    idealWidth: 430,
-                    maxWidth: 520
+                    minWidth:
+                        360,
+                    idealWidth:
+                        430,
+                    maxWidth:
+                        520
                 )
                 .frame(
                     maxHeight:
@@ -424,7 +580,8 @@ struct InboxView: View {
                     document.sourceURL
             )
             .frame(
-                minWidth: 420,
+                minWidth:
+                    420,
                 maxWidth:
                     .infinity,
                 maxHeight:
@@ -442,7 +599,8 @@ struct InboxView: View {
                     "Wähle links eine PDF-Datei aus, um sie anzuzeigen."
             )
             .frame(
-                minWidth: 420,
+                minWidth:
+                    420,
                 maxWidth:
                     .infinity,
                 maxHeight:
@@ -466,21 +624,73 @@ struct InboxView: View {
                 filenameDraft:
                     $filenameDraft,
                 extractedText:
-                    viewModel.extractedText,
+                    viewModel
+                        .extractedText,
                 textExtractionMessage:
                     viewModel
                         .textExtractionMessage,
                 analysis:
-                    viewModel.analysis,
+                    viewModel
+                        .analysis,
                 folderSuggestion:
-                    viewModel.folderSuggestion,
+                    viewModel
+                        .folderSuggestion,
                 manualArchiveDestinationURL:
                     viewModel
                         .manualArchiveDestinationURL,
+
+                // MARK: Visueller Absender
+
+                visualSenderSuggestion:
+                    viewModel
+                        .visualSenderSuggestion,
+
+                visualSenderConfirmationCount:
+                    viewModel
+                        .visualSenderConfirmationCount,
+
+                visualSenderNeedsConfirmation:
+                    viewModel
+                        .visualSenderNeedsConfirmation,
+
+                visualSenderSimilarity:
+                    viewModel
+                        .visualSenderSimilarity,
+
+                availableVisualSenderCompanies:
+                    viewModel
+                        .availableVisualSenderCompanies,
+
+                onConfirmVisualSender: {
+                    company in
+
+                    let confirmed =
+                        viewModel
+                            .confirmVisualSender(
+                                company:
+                                    company,
+                                for:
+                                    document
+                            )
+
+                    if confirmed {
+
+                        applyAutomaticFilenameSuggestion(
+                            for:
+                                document
+                        )
+                    }
+                },
+
+                // MARK: Status
+
                 isAnalyzing:
-                    viewModel.isAnalyzing,
+                    viewModel
+                        .isAnalyzing,
+
                 isArchiving:
-                    viewModel.isArchiving,
+                    viewModel
+                        .isArchiving,
 
                 // MARK: Analyse
 
@@ -491,8 +701,6 @@ struct InboxView: View {
                             document
                     )
                 },
-
-                // MARK: Dateiname manuell neu erzeugen
 
                 // MARK: Lernen
 
@@ -551,10 +759,9 @@ struct InboxView: View {
                                         .whitespacesAndNewlines
                                 )
 
-                        // Wenn im Dateinamensfeld
-                        // ein anderer Name steht,
-                        // wird er zuerst tatsächlich
-                        // auf die PDF angewendet.
+                        // Der sichtbare Dateiname wird
+                        // zuerst wirklich auf die Datei
+                        // angewendet.
                         if !cleanedDraft.isEmpty &&
                             cleanedDraft !=
                                 currentFilename {
@@ -567,6 +774,7 @@ struct InboxView: View {
                                         cleanedDraft
                                 )
                             else {
+
                                 return
                             }
 
@@ -574,7 +782,8 @@ struct InboxView: View {
                                 renamedDocument
                         }
 
-                        // Erst danach archivieren.
+                        // Anschließend wird die
+                        // umbenannte Datei archiviert.
                         let success =
                             await viewModel
                                 .archive(
@@ -589,14 +798,20 @@ struct InboxView: View {
 
                             filenameDraft =
                                 ""
+
+                            lastAutomaticFilenameSuggestion =
+                                ""
                         }
                     }
                 }
             )
             .frame(
-                minWidth: 360,
-                idealWidth: 430,
-                maxWidth: 520,
+                minWidth:
+                    360,
+                idealWidth:
+                    430,
+                maxWidth:
+                    520,
                 maxHeight:
                     .infinity,
                 alignment:
@@ -614,9 +829,12 @@ struct InboxView: View {
                     "Wähle ein Dokument aus, damit Atlas es analysieren kann."
             )
             .frame(
-                minWidth: 360,
-                idealWidth: 430,
-                maxWidth: 520,
+                minWidth:
+                    360,
+                idealWidth:
+                    430,
+                maxWidth:
+                    520,
                 maxHeight:
                     .infinity
             )
@@ -637,6 +855,7 @@ struct InboxView: View {
             guard let selectedFolder =
                 urls.first
             else {
+
                 return
             }
 
@@ -644,6 +863,9 @@ struct InboxView: View {
                 nil
 
             filenameDraft =
+                ""
+
+            lastAutomaticFilenameSuggestion =
                 ""
 
             viewModel
@@ -675,6 +897,7 @@ struct InboxView: View {
            let refreshedDocument =
             viewModel.documents.first(
                 where: {
+
                     $0.sourceURL ==
                         previousURL
                 }
@@ -689,12 +912,20 @@ struct InboxView: View {
                         refreshedDocument
                 )
 
+            applyAutomaticFilenameSuggestion(
+                for:
+                    refreshedDocument
+            )
+
         } else {
 
             selectedDocument =
                 nil
 
             filenameDraft =
+                ""
+
+            lastAutomaticFilenameSuggestion =
                 ""
 
             viewModel
@@ -709,6 +940,7 @@ struct InboxView: View {
         guard let document =
             selectedDocument
         else {
+
             return
         }
 
@@ -720,6 +952,7 @@ struct InboxView: View {
                     filenameDraft
             )
         else {
+
             return
         }
 
@@ -731,6 +964,9 @@ struct InboxView: View {
                 .sourceURL
                 .deletingPathExtension()
                 .lastPathComponent
+
+        lastAutomaticFilenameSuggestion =
+            filenameDraft
 
         viewModel
             .selectAnalysis(
@@ -744,7 +980,9 @@ struct InboxView: View {
 
     InboxView()
         .frame(
-            width: 1400,
-            height: 800
+            width:
+                1400,
+            height:
+                800
         )
 }

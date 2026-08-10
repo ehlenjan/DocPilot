@@ -80,6 +80,12 @@
 		30ADDF3330291A2900F26FFB /* ArchiveDestinationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */; };
 		30ADDF3530291ECB00F26FFB /* ArchiveFolderPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */; };
 		30ADDF3730292BC400F26FFB /* RecipientRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */; };
+		30ADDF393029A51200F26FFB /* SenderVisualRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF383029A51200F26FFB /* SenderVisualRecognizer.swift */; };
+		30ADDF3B3029A5F300F26FFB /* VisualSenderLearningEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3A3029A5F300F26FFB /* VisualSenderLearningEntry.swift */; };
+		30ADDF3D3029A64000F26FFB /* VisualSenderLearningStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3C3029A64000F26FFB /* VisualSenderLearningStore.swift */; };
+		30ADDF3F3029A67B00F26FFB /* VisualSenderLearningManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF3E3029A67B00F26FFB /* VisualSenderLearningManager.swift */; };
+		30ADDF413029A73700F26FFB /* VisualFeatureSignature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF403029A73700F26FFB /* VisualFeatureSignature.swift */; };
+		30ADDF433029F4F800F26FFB /* LearnedCompanyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30ADDF423029F4F800F26FFB /* LearnedCompanyStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -157,6 +163,12 @@
 		30ADDF3230291A2900F26FFB /* ArchiveDestinationResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDestinationResolver.swift; sourceTree = "<group>"; };
 		30ADDF3430291ECB00F26FFB /* ArchiveFolderPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveFolderPickerSheet.swift; sourceTree = "<group>"; };
 		30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientRecognizer.swift; sourceTree = "<group>"; };
+		30ADDF383029A51200F26FFB /* SenderVisualRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderVisualRecognizer.swift; sourceTree = "<group>"; };
+		30ADDF3A3029A5F300F26FFB /* VisualSenderLearningEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualSenderLearningEntry.swift; sourceTree = "<group>"; };
+		30ADDF3C3029A64000F26FFB /* VisualSenderLearningStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualSenderLearningStore.swift; sourceTree = "<group>"; };
+		30ADDF3E3029A67B00F26FFB /* VisualSenderLearningManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualSenderLearningManager.swift; sourceTree = "<group>"; };
+		30ADDF403029A73700F26FFB /* VisualFeatureSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualFeatureSignature.swift; sourceTree = "<group>"; };
+		30ADDF423029F4F800F26FFB /* LearnedCompanyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnedCompanyStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -336,6 +348,11 @@
 				303B7A5A301FD530001D99ED /* DateRecognizer.swift */,
 				303B7A5C301FD574001D99ED /* KeywordRecognizer.swift */,
 				30ADDF3630292BC400F26FFB /* RecipientRecognizer.swift */,
+				30ADDF383029A51200F26FFB /* SenderVisualRecognizer.swift */,
+				30ADDF3A3029A5F300F26FFB /* VisualSenderLearningEntry.swift */,
+				30ADDF3C3029A64000F26FFB /* VisualSenderLearningStore.swift */,
+				30ADDF3E3029A67B00F26FFB /* VisualSenderLearningManager.swift */,
+				30ADDF403029A73700F26FFB /* VisualFeatureSignature.swift */,
 			);
 			path = Analysis;
 			sourceTree = "<group>";
@@ -393,6 +410,7 @@
 				303B7A823020F6EB001D99ED /* LearningManager.swift */,
 				303B7A843020F74A001D99ED /* LearningEngine.swift */,
 				303B7AAD30211A72001D99ED /* LearningMatcher.swift */,
+				30ADDF423029F4F800F26FFB /* LearnedCompanyStore.swift */,
 			);
 			path = Learning;
 			sourceTree = "<group>";
@@ -563,6 +581,7 @@
 				30ADDF2D3028EBAB00F26FFB /* QuickLookManager.swift in Sources */,
 				303B7A763020F177001D99ED /* AtlasStatusCard.swift in Sources */,
 				303B7A6E3020EF7C001D99ED /* AtlasInfoCard.swift in Sources */,
+				30ADDF393029A51200F26FFB /* SenderVisualRecognizer.swift in Sources */,
 				303B7A8B3020F964001D99ED /* LearningListView.swift in Sources */,
 				303B7A21301F59E8001D99ED /* ContentView.swift in Sources */,
 				303B7A7C3020F262001D99ED /* AtlasCard.swift in Sources */,
@@ -578,10 +597,12 @@
 				303B7AB63021D5CC001D99ED /* AtlasLearningSheet.swift in Sources */,
 				303B7A47301F7FDE001D99ED /* DocumentListView.swift in Sources */,
 				303B7A7F3020F55F001D99ED /* LearningEntry.swift in Sources */,
+				30ADDF3D3029A64000F26FFB /* VisualSenderLearningStore.swift in Sources */,
 				303B7ACE3025147B001D99ED /* ArchiveLocationsStore.swift in Sources */,
 				303B7A4B301F80ED001D99ED /* EmptyDocumentListView.swift in Sources */,
 				303B7A853020F74A001D99ED /* LearningEngine.swift in Sources */,
 				303B7A703020EFAE001D99ED /* AtlasFolderCard.swift in Sources */,
+				30ADDF3B3029A5F300F26FFB /* VisualSenderLearningEntry.swift in Sources */,
 				303B7A5D301FD574001D99ED /* KeywordRecognizer.swift in Sources */,
 				303B7AAA3021193A001D99ED /* AtlasSettingsView.swift in Sources */,
 				303B7A3D301F7935001D99ED /* FilenameSuggestionService.swift in Sources */,
@@ -589,13 +610,16 @@
 				303B7ABF302491CA001D99ED /* ArchiveScanner.swift in Sources */,
 				303B7A39301F72DB001D99ED /* InboxViewModel.swift in Sources */,
 				30ADDF313028F02600F26FFB /* ArchiveMoveSheet.swift in Sources */,
+				30ADDF413029A73700F26FFB /* VisualFeatureSignature.swift in Sources */,
 				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
+				30ADDF433029F4F800F26FFB /* LearnedCompanyStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,
 				303B7AD430269374001D99ED /* ArchiveWorkspaceStore.swift in Sources */,
 				30ADDF3730292BC400F26FFB /* RecipientRecognizer.swift in Sources */,
 				303B7A9B30211168001D99ED /* AppSettings.swift in Sources */,
+				30ADDF3F3029A67B00F26FFB /* VisualSenderLearningManager.swift in Sources */,
 				303B7AC1302491D9001D99ED /* ArchiveNode.swift in Sources */,
 				30ADDF2F3028EFD400F26FFB /* ArchiveFileMover.swift in Sources */,
 				303B7AD23026932D001D99ED /* ArchiveWorkspace.swift in Sources */,
