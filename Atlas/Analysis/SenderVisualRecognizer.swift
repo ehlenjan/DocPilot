@@ -11,8 +11,40 @@ struct SenderVisualRecognizer {
     init(
         knowledgeBase: KnowledgeBase
     ) {
+
         self.knowledgeBase =
             knowledgeBase
+    }
+
+    // MARK: - OCR Observation
+
+    private struct RecognizedTextItem {
+
+        let text:
+            String
+
+        // Vision-Koordinaten:
+        // 0 ... 1 innerhalb des gerenderten
+        // Kopfbereichs.
+        let boundingBox:
+            CGRect
+    }
+
+    // MARK: - Company Match
+
+    private struct CompanyMatch {
+
+        let company:
+            String
+
+        let matchedText:
+            String
+
+        let boundingBox:
+            CGRect
+
+        let score:
+            Int
     }
 
     // MARK: - Combined Analysis
@@ -27,16 +59,28 @@ struct SenderVisualRecognizer {
 
         let signature:
             VisualFeatureSignature?
+
+        // Exakter OCR-Text, über den die
+        // Firma visuell erkannt wurde.
+        let detectedCompanyText:
+            String?
+
+        // Vision-Koordinaten innerhalb
+        // des oberen 30-%-Ausschnitts.
+        let detectedCompanyBoundingBox:
+            CGRect?
     }
 
     func analyze(
         pdfURL: URL
     ) async -> Result {
 
-        guard let headerImage =
-            firstPageHeaderImage(
-                from: pdfURL
-            )
+        guard
+            let headerImage =
+                firstPageHeaderImage(
+                    from:
+                        pdfURL
+                )
         else {
 
             return Result(
@@ -45,40 +89,66 @@ struct SenderVisualRecognizer {
                 recognizedText:
                     "",
                 signature:
+                    nil,
+                detectedCompanyText:
+                    nil,
+                detectedCompanyBoundingBox:
                     nil
             )
         }
 
-        async let recognizedTextTask =
-            recognizeText(
-                in: headerImage
+        async let recognizedTextItemsTask =
+            recognizeTextItems(
+                in:
+                    headerImage
             )
 
         async let signatureTask =
             generateSignature(
-                from: headerImage
+                from:
+                    headerImage
             )
 
         do {
 
-            let recognizedText =
-                try await recognizedTextTask
+            let recognizedTextItems =
+                try await
+                    recognizedTextItemsTask
 
             let signature =
-                try await signatureTask
+                try await
+                    signatureTask
 
-            let company =
+            let recognizedText =
+                recognizedTextItems
+                    .map(
+                        \.text
+                    )
+                    .joined(
+                        separator:
+                            "\n"
+                    )
+
+            let companyMatch =
                 bestCompany(
-                    in: recognizedText
+                    in:
+                        recognizedTextItems
                 )
 
             return Result(
                 detectedCompany:
-                    company,
+                    companyMatch?
+                        .company,
                 recognizedText:
                     recognizedText,
                 signature:
-                    signature
+                    signature,
+                detectedCompanyText:
+                    companyMatch?
+                        .matchedText,
+                detectedCompanyBoundingBox:
+                    companyMatch?
+                        .boundingBox
             )
 
         } catch {
@@ -93,6 +163,10 @@ struct SenderVisualRecognizer {
                 recognizedText:
                     "",
                 signature:
+                    nil,
+                detectedCompanyText:
+                    nil,
+                detectedCompanyBoundingBox:
                     nil
             )
         }
@@ -110,7 +184,8 @@ struct SenderVisualRecognizer {
                     pdfURL
             )
 
-        return result.detectedCompany
+        return result
+            .detectedCompany
     }
 
     // MARK: - Signature
@@ -119,11 +194,14 @@ struct SenderVisualRecognizer {
         for pdfURL: URL
     ) async -> VisualFeatureSignature? {
 
-        guard let headerImage =
-            firstPageHeaderImage(
-                from: pdfURL
-            )
+        guard
+            let headerImage =
+                firstPageHeaderImage(
+                    from:
+                        pdfURL
+                )
         else {
+
             return nil
         }
 
@@ -159,9 +237,11 @@ struct SenderVisualRecognizer {
                 ),
             let firstPage =
                 document.page(
-                    at: 0
+                    at:
+                        0
                 )
         else {
+
             return nil
         }
 
@@ -187,11 +267,10 @@ struct SenderVisualRecognizer {
             pageBounds.width > 0,
             pageBounds.height > 0
         else {
+
             return nil
         }
 
-        // Hohe Auflösung für OCR und
-        // visuelle Feature-Erkennung.
         let targetWidth:
             CGFloat = 1800
 
@@ -214,6 +293,7 @@ struct SenderVisualRecognizer {
                         CGColorSpace.sRGB
                 )
         else {
+
             return nil
         }
 
@@ -223,9 +303,13 @@ struct SenderVisualRecognizer {
                     data:
                         nil,
                     width:
-                        Int(fullWidth),
+                        Int(
+                            fullWidth
+                        ),
                     height:
-                        Int(fullHeight),
+                        Int(
+                            fullHeight
+                        ),
                     bitsPerComponent:
                         8,
                     bytesPerRow:
@@ -238,6 +322,7 @@ struct SenderVisualRecognizer {
                             .rawValue
                 )
         else {
+
             return nil
         }
 
@@ -247,8 +332,10 @@ struct SenderVisualRecognizer {
 
         context.fill(
             CGRect(
-                x: 0,
-                y: 0,
+                x:
+                    0,
+                y:
+                    0,
                 width:
                     fullWidth,
                 height:
@@ -274,17 +361,14 @@ struct SenderVisualRecognizer {
 
         context.restoreGState()
 
-        guard let fullImage =
-            context.makeImage()
+        guard
+            let fullImage =
+                context.makeImage()
         else {
+
             return nil
         }
 
-        // Wir verwenden bewusst nur den oberen
-        // Dokumentbereich. Dadurch beeinflussen
-        // wechselnde Positionen, Artikelzeilen,
-        // Beträge usw. die visuelle Signatur
-        // wesentlich weniger.
         let headerRatio =
             0.30
 
@@ -318,11 +402,11 @@ struct SenderVisualRecognizer {
         )
     }
 
-    // MARK: - Vision OCR
+    // MARK: - Vision OCR With Positions
 
-    private func recognizeText(
+    private func recognizeTextItems(
         in image: CGImage
-    ) async throws -> String {
+    ) async throws -> [RecognizedTextItem] {
 
         try await
             withCheckedThrowingContinuation {
@@ -351,37 +435,62 @@ struct SenderVisualRecognizer {
                             ]
                             ?? []
 
-                        let strings =
+                        let items =
                             observations
                                 .compactMap {
-                                    observation in
-
                                     observation
-                                        .topCandidates(
-                                            1
-                                        )
-                                        .first?
-                                        .string
+                                    -> RecognizedTextItem? in
+
+                                    guard
+                                        let candidate =
+                                            observation
+                                                .topCandidates(
+                                                    1
+                                                )
+                                                .first
+                                    else {
+
+                                        return nil
+                                    }
+
+                                    let text =
+                                        candidate
+                                            .string
+                                            .trimmingCharacters(
+                                                in:
+                                                    .whitespacesAndNewlines
+                                            )
+
+                                    guard
+                                        !text.isEmpty
+                                    else {
+
+                                        return nil
+                                    }
+
+                                    return RecognizedTextItem(
+                                        text:
+                                            text,
+                                        boundingBox:
+                                            observation
+                                                .boundingBox
+                                    )
                                 }
 
                         continuation
                             .resume(
                                 returning:
-                                    strings.joined(
-                                        separator:
-                                            "\n"
-                                    )
+                                    items
                             )
                     }
 
                 request.recognitionLevel =
                     .accurate
 
-                request.recognitionLanguages =
-                    [
-                        "de-DE",
-                        "en-US"
-                    ]
+                request.recognitionLanguages = [
+                    "de-DE",
+                    "en-US"
+                ]
 
                 request.usesLanguageCorrection =
                     true
@@ -390,7 +499,8 @@ struct SenderVisualRecognizer {
                     VNImageRequestHandler(
                         cgImage:
                             image,
-                        options: [:]
+                        options:
+                            [:]
                     )
 
                 do {
@@ -444,7 +554,7 @@ struct SenderVisualRecognizer {
                                 request.results?
                                     .first
                                 as?
-                                VNFeaturePrintObservation
+                                    VNFeaturePrintObservation
                         else {
 
                             continuation
@@ -478,7 +588,8 @@ struct SenderVisualRecognizer {
                     VNImageRequestHandler(
                         cgImage:
                             image,
-                        options: [:]
+                        options:
+                            [:]
                     )
 
                 do {
@@ -503,31 +614,14 @@ struct SenderVisualRecognizer {
     // MARK: - Company Matching
 
     private func bestCompany(
-        in recognizedText: String
-    ) -> String? {
+        in items: [RecognizedTextItem]
+    ) -> CompanyMatch? {
 
-        let normalizedText =
-            normalize(
-                recognizedText
-            )
-
-        guard
-            !normalizedText.isEmpty
-        else {
-            return nil
-        }
-
-        var bestCompany:
-            String?
-
-        var bestScore =
-            0
+        var bestMatch:
+            CompanyMatch?
 
         for company in
             knowledgeBase.companies {
-
-            var score =
-                0
 
             for keyword in
                 company.keywords {
@@ -538,51 +632,75 @@ struct SenderVisualRecognizer {
                     )
 
                 guard
-                    !normalizedKeyword
-                        .isEmpty
+                    !normalizedKeyword.isEmpty
                 else {
+
                     continue
                 }
 
-                if normalizedText.contains(
-                    normalizedKeyword
-                ) {
+                for item in items {
 
-                    // Ein OCR-Treffer im Kopfbereich
-                    // ist wesentlich stärker als ein
-                    // zufälliges Vorkommen im Volltext.
-                    score += 50
+                    let normalizedItem =
+                        normalize(
+                            item.text
+                        )
+
+                    guard
+                        normalizedItem.contains(
+                            normalizedKeyword
+                        )
+                    else {
+
+                        continue
+                    }
+
+                    var score =
+                        50
 
                     if normalizedKeyword.count >= 10 {
 
-                        score += 15
+                        score +=
+                            15
 
                     } else if
                         normalizedKeyword.count >= 6 {
 
-                        score += 8
+                        score +=
+                            8
+                    }
+
+                    let candidate =
+                        CompanyMatch(
+                            company:
+                                company.name,
+                            matchedText:
+                                item.text,
+                            boundingBox:
+                                item.boundingBox,
+                            score:
+                                score
+                        )
+
+                    if bestMatch == nil ||
+                        candidate.score >
+                            bestMatch!.score {
+
+                        bestMatch =
+                            candidate
                     }
                 }
-            }
-
-            if score >
-                bestScore {
-
-                bestScore =
-                    score
-
-                bestCompany =
-                    company.name
             }
         }
 
         guard
-            bestScore >= 50
+            let bestMatch,
+            bestMatch.score >= 50
         else {
+
             return nil
         }
 
-        return bestCompany
+        return bestMatch
     }
 
     // MARK: - Debug Similarity
@@ -595,44 +713,54 @@ struct SenderVisualRecognizer {
         guard
             let firstSignature =
                 await signature(
-                    for: firstPDF
+                    for:
+                        firstPDF
                 )
         else {
+
             print(
                 "❌ Keine visuelle Signatur für:",
                 firstPDF.lastPathComponent
             )
+
             return
         }
 
         guard
             let secondSignature =
                 await signature(
-                    for: secondPDF
+                    for:
+                        secondPDF
                 )
         else {
+
             print(
                 "❌ Keine visuelle Signatur für:",
                 secondPDF.lastPathComponent
             )
+
             return
         }
 
         guard
             let similarity =
-                firstSignature.similarity(
-                    to: secondSignature
-                )
+                firstSignature
+                    .similarity(
+                        to:
+                            secondSignature
+                    )
         else {
+
             print(
                 "❌ Visuelle Signaturen konnten nicht verglichen werden."
             )
+
             return
         }
 
         print(
             """
-            
+
             🧠 Atlas Visual Test
             --------------------
             Datei 1: \(firstPDF.lastPathComponent)
@@ -640,10 +768,11 @@ struct SenderVisualRecognizer {
             Similarity: \(String(format: "%.4f", similarity))
             Prozent: \(String(format: "%.1f", similarity * 100)) %
             --------------------
-            
+
             """
         )
     }
+
     // MARK: - Normalize
 
     private func normalize(

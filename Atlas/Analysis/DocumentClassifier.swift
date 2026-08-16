@@ -1,5 +1,20 @@
 import Foundation
 
+// MARK: - Document Classification Result
+
+struct DocumentClassificationResult {
+
+    let documentType:
+        DocumentType
+
+    // Der Begriff, der den stärksten
+    // Einzelbeitrag zur Erkennung geleistet hat.
+    let matchedText:
+        String
+}
+
+// MARK: - Document Classifier
+
 struct DocumentClassifier {
 
     private let knowledgeBase:
@@ -8,15 +23,30 @@ struct DocumentClassifier {
     init(
         knowledgeBase: KnowledgeBase
     ) {
+
         self.knowledgeBase =
             knowledgeBase
     }
 
-    // MARK: - Detection
+    // MARK: - Existing Detection
 
     func detect(
         in text: String
     ) -> DocumentType {
+
+        detectResult(
+            in:
+                text
+        )?
+        .documentType
+        ?? .unknown
+    }
+
+    // MARK: - Detailed Detection
+
+    func detectResult(
+        in text: String
+    ) -> DocumentClassificationResult? {
 
         let normalizedText =
             normalize(
@@ -26,7 +56,8 @@ struct DocumentClassifier {
         guard
             !normalizedText.isEmpty
         else {
-            return .unknown
+
+            return nil
         }
 
         let normalizedLines =
@@ -36,11 +67,13 @@ struct DocumentClassifier {
                         .newlines
                 )
                 .map {
+
                     normalize(
                         $0
                     )
                 }
                 .filter {
+
                     !$0.isEmpty
                 }
 
@@ -76,11 +109,12 @@ struct DocumentClassifier {
                         $1.score
                 }
 
-        guard let best =
-            results.first
+        guard
+            let best =
+                results.first
         else {
 
-            return .unknown
+            return nil
         }
 
         // Ein einzelner sehr schwacher Treffer
@@ -89,7 +123,7 @@ struct DocumentClassifier {
             best.score >= 2.0
         else {
 
-            return .unknown
+            return nil
         }
 
         // Wenn zwei Dokumentarten beinahe gleichauf
@@ -106,11 +140,24 @@ struct DocumentClassifier {
 
             if difference < 0.75 {
 
-                return .unknown
+                return nil
             }
         }
 
-        return best.documentType
+        guard
+            let strongestKeyword =
+                best.strongestKeyword
+        else {
+
+            return nil
+        }
+
+        return DocumentClassificationResult(
+            documentType:
+                best.documentType,
+            matchedText:
+                strongestKeyword
+        )
     }
 
     // MARK: - Rule Scoring
@@ -128,6 +175,14 @@ struct DocumentClassifier {
         var matchedKeywords:
             Set<String> = []
 
+        // Wir merken uns zusätzlich den
+        // stärksten Einzelbegriff.
+        var strongestKeyword:
+            String?
+
+        var strongestKeywordScore =
+            0.0
+
         for keyword in
             rule.keywords {
 
@@ -139,6 +194,7 @@ struct DocumentClassifier {
             guard
                 !normalizedKeyword.isEmpty
             else {
+
                 continue
             }
 
@@ -147,6 +203,7 @@ struct DocumentClassifier {
                     normalizedKeyword
                 )
             else {
+
                 continue
             }
 
@@ -157,6 +214,7 @@ struct DocumentClassifier {
                     normalizedKeyword
                 )
             else {
+
                 continue
             }
 
@@ -174,6 +232,7 @@ struct DocumentClassifier {
 
             if headerLines.contains(
                 where: {
+
                     $0.contains(
                         normalizedKeyword
                     )
@@ -191,6 +250,7 @@ struct DocumentClassifier {
             // ist das ein sehr starkes Signal.
             if normalizedLines.contains(
                 where: {
+
                     isHeadingMatch(
                         line:
                             $0,
@@ -241,6 +301,19 @@ struct DocumentClassifier {
 
             totalScore +=
                 keywordScore
+
+            // Stärkstes einzelnes Merkmal
+            // dieser Dokumentart merken.
+            if strongestKeyword == nil ||
+                keywordScore >
+                    strongestKeywordScore {
+
+                strongestKeyword =
+                    keyword
+
+                strongestKeywordScore =
+                    keywordScore
+            }
         }
 
         guard
@@ -264,7 +337,9 @@ struct DocumentClassifier {
             documentType:
                 rule.documentType,
             score:
-                totalScore
+                totalScore,
+            strongestKeyword:
+                strongestKeyword
         )
     }
 
@@ -277,15 +352,19 @@ struct DocumentClassifier {
         switch keyword.count {
 
         case 14...:
+
             return 2.0
 
         case 9..<14:
+
             return 1.6
 
         case 5..<9:
+
             return 1.2
 
         default:
+
             return 0.8
         }
     }
@@ -458,7 +537,7 @@ struct DocumentClassifier {
     }
 }
 
-// MARK: - Classification Result
+// MARK: - Internal Classification Result
 
 private struct ClassificationResult {
 
@@ -467,4 +546,7 @@ private struct ClassificationResult {
 
     let score:
         Double
+
+    let strongestKeyword:
+        String?
 }

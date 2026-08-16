@@ -48,6 +48,11 @@ final class InboxViewModel {
     private let learnedCompanyStore =
         LearnedCompanyStore()
 
+    // MARK: - Atlas Learning
+
+    private let atlasLearningStore =
+        AtlasLearningStore()
+
     // MARK: - Init
 
     init() {
@@ -118,6 +123,11 @@ final class InboxViewModel {
     var isArchiving =
         false
 
+    // MARK: - Archive Conflict
+
+    var archiveConflict:
+        ArchiveConflict?
+
     // MARK: - Manual Archive Destination
 
     var manualArchiveDestinationURL:
@@ -149,6 +159,15 @@ final class InboxViewModel {
     /// gelernten visuellen Eintrag.
     var visualSenderSimilarity:
         Double?
+
+    /// Position des per OCR im Dokumentkopf
+    /// erkannten Absenders.
+    ///
+    /// Die Koordinaten stammen aus Vision
+    /// und beziehen sich auf den oberen
+    /// 30-%-Ausschnitt der ersten PDF-Seite.
+    var visualSenderBoundingBox:
+        CGRect?
 
     /// Firmen für die spätere
     /// "Absender bestätigen"-Auswahl.
@@ -227,6 +246,15 @@ final class InboxViewModel {
     private var folderSuggestionsByURL:
         [URL: FolderSuggestion] = [:]
 
+    /// Ursprünglicher Atlas-Vorschlag.
+    /// Dieser wird bei manuellen Korrekturen nicht überschrieben.
+    private var initialAnalysesByURL:
+        [URL: AtlasAnalysis] = [:]
+
+    /// Ursprünglicher Zielordner-Vorschlag von Atlas.
+    private var initialFolderSuggestionsByURL:
+        [URL: FolderSuggestion] = [:]
+
     /// Extrahierter Text wird gespeichert,
     /// damit nach einer Absenderkorrektur der
     /// Archivvorschlag neu berechnet werden kann.
@@ -249,6 +277,9 @@ final class InboxViewModel {
 
     private var visualSenderSimilaritiesByURL:
         [URL: Double] = [:]
+
+    private var visualSenderBoundingBoxesByURL:
+        [URL: CGRect] = [:]
 
     // MARK: - Folder URL
 
@@ -350,6 +381,22 @@ final class InboxViewModel {
                     )
                 }
 
+            initialAnalysesByURL =
+                initialAnalysesByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            initialFolderSuggestionsByURL =
+                initialFolderSuggestionsByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
             extractedTextsByURL =
                 extractedTextsByURL.filter {
 
@@ -392,6 +439,14 @@ final class InboxViewModel {
 
             visualSenderSimilaritiesByURL =
                 visualSenderSimilaritiesByURL.filter {
+
+                    availableURLs.contains(
+                        $0.key
+                    )
+                }
+
+            visualSenderBoundingBoxesByURL =
+                visualSenderBoundingBoxesByURL.filter {
 
                     availableURLs.contains(
                         $0.key
@@ -468,12 +523,44 @@ final class InboxViewModel {
 
             // Zusätzlich den Dokumentkopf
             // visuell untersuchen.
-            let finalAnalysis =
+            let senderAnalysis =
                 await applyVisualSenderAnalysis(
                     to:
                         textAnalysis,
                     document:
                         document
+                )
+
+            // Bei bekannten Dokumentlayouts kann Atlas
+            // ein Datum zusätzlich gezielt aus dem
+            // vorgesehenen Datumsfeld lesen.
+            //
+            // Das Layout-Datum wird nur übernommen,
+            // wenn die OCR-Konsensprüfung es als
+            // ausreichend sicher bewertet.
+            let dateAnalysis =
+                await applyLayoutDateAnalysis(
+                    to:
+                        senderAnalysis,
+                    document:
+                        document,
+                    text:
+                        text
+                )
+
+            // Bei bekannten Layouts kann Atlas zusätzlich
+            // gezielt den Empfängerbereich lesen.
+            //
+            // Die eigentliche Zuordnung übernimmt weiterhin
+            // der zentrale RecipientRecognizer.
+            let finalAnalysis =
+                await applyLayoutRecipientAnalysis(
+                    to:
+                        dateAnalysis,
+                    document:
+                        document,
+                    text:
+                        text
                 )
 
             let newFolderSuggestion =
@@ -484,6 +571,26 @@ final class InboxViewModel {
                         text:
                             text
                     )
+
+            if initialAnalysesByURL[
+                document.sourceURL
+            ] == nil {
+
+                initialAnalysesByURL[
+                    document.sourceURL
+                ] =
+                    finalAnalysis
+            }
+
+            if initialFolderSuggestionsByURL[
+                document.sourceURL
+            ] == nil {
+
+                initialFolderSuggestionsByURL[
+                    document.sourceURL
+                ] =
+                    newFolderSuggestion
+            }
 
             analysesByURL[
                 document.sourceURL
@@ -590,12 +697,32 @@ final class InboxViewModel {
                         text
                 )
 
-            let finalAnalysis =
+            let senderAnalysis =
                 await applyVisualSenderAnalysis(
                     to:
                         textAnalysis,
                     document:
                         document
+                )
+
+            let dateAnalysis =
+                await applyLayoutDateAnalysis(
+                    to:
+                        senderAnalysis,
+                    document:
+                        document,
+                    text:
+                        text
+                )
+
+            let finalAnalysis =
+                await applyLayoutRecipientAnalysis(
+                    to:
+                        dateAnalysis,
+                    document:
+                        document,
+                    text:
+                        text
                 )
 
             let newFolderSuggestion =
@@ -612,6 +739,26 @@ final class InboxViewModel {
 
             folderSuggestion =
                 newFolderSuggestion
+
+            if initialAnalysesByURL[
+                document.sourceURL
+            ] == nil {
+
+                initialAnalysesByURL[
+                    document.sourceURL
+                ] =
+                    finalAnalysis
+            }
+
+            if initialFolderSuggestionsByURL[
+                document.sourceURL
+            ] == nil {
+
+                initialFolderSuggestionsByURL[
+                    document.sourceURL
+                ] =
+                    newFolderSuggestion
+            }
 
             analysesByURL[
                 document.sourceURL
@@ -635,6 +782,263 @@ final class InboxViewModel {
         }
     }
 
+    // MARK: - Layout Date Analysis
+
+    private func applyLayoutDateAnalysis(
+        to baseAnalysis: AtlasAnalysis,
+        document: DocumentRecord,
+        text: String
+    ) async -> AtlasAnalysis {
+
+        guard
+            let sender =
+                baseAnalysis.sender
+        else {
+
+            return baseAnalysis
+        }
+
+        guard
+            let profile =
+                DocumentLayoutProfile
+                    .bestMatching(
+                        company:
+                            sender,
+                        documentType:
+                            baseAnalysis.documentType,
+                        documentText:
+                            text
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        let fieldRecognizer =
+            LayoutFieldRecognizer()
+
+        guard
+            let rawDateText =
+                await fieldRecognizer
+                    .recognize(
+                        field:
+                            .date,
+                        in:
+                            document.sourceURL,
+                        profile:
+                            profile
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        let layoutDateRecognizer =
+            LayoutDateRecognizer()
+
+        guard
+            let result =
+                layoutDateRecognizer
+                    .recognize(
+                        from:
+                            rawDateText
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        return replacingDate(
+            in:
+                baseAnalysis,
+            with:
+                result.date,
+            detectedText:
+                result.matchedText,
+            reason:
+                "Datum \(result.matchedText) wurde im bekannten Layout \(profile.name) erkannt (\(result.confirmations)× bestätigt)"
+        )
+    }
+
+    private func replacingDate(
+        in analysis: AtlasAnalysis,
+        with date: Date,
+        detectedText: String,
+        reason: String
+    ) -> AtlasAnalysis {
+
+        var reasons =
+            analysis.reasons.filter {
+
+                !$0
+                    .localizedCaseInsensitiveContains(
+                        "Datum "
+                    )
+            }
+
+        reasons.append(
+            reason
+        )
+
+        return AtlasAnalysis(
+            documentType:
+                analysis.documentType,
+            documentTypeDetectedText:
+                analysis.documentTypeDetectedText,
+            detectedDate:
+                date,
+            detectedDateText:
+                detectedText,
+            sender:
+                analysis.sender,
+            senderDetectedText:
+                analysis.senderDetectedText,
+            recipientArea:
+                analysis.recipientArea,
+            recipientDetectedText:
+                analysis.recipientDetectedText,
+            keywords:
+                analysis.keywords,
+            confidence:
+                analysis.confidence,
+            reasons:
+                reasons
+        )
+    }
+
+    // MARK: - Layout Recipient Analysis
+
+    private func applyLayoutRecipientAnalysis(
+        to baseAnalysis: AtlasAnalysis,
+        document: DocumentRecord,
+        text: String
+    ) async -> AtlasAnalysis {
+
+        guard
+            let sender =
+                baseAnalysis.sender
+        else {
+
+            return baseAnalysis
+        }
+
+        guard
+            let profile =
+                DocumentLayoutProfile
+                    .bestMatching(
+                        company:
+                            sender,
+                        documentType:
+                            baseAnalysis.documentType,
+                        documentText:
+                            text
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        // Nur Layouts mit bewusst definiertem
+        // Empfängerbereich werden zusätzlich gelesen.
+        guard
+            profile.archiveIdentityRegion != nil
+        else {
+
+            return baseAnalysis
+        }
+
+        let fieldRecognizer =
+            LayoutFieldRecognizer()
+
+        guard
+            let recipientText =
+                await fieldRecognizer
+                    .recognize(
+                        field:
+                            .recipient,
+                        in:
+                            document.sourceURL,
+                        profile:
+                            profile
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        let recipientRecognizer =
+            RecipientRecognizer()
+
+        guard
+            let result =
+                recipientRecognizer
+                    .detectResult(
+                        in:
+                            recipientText
+                    )
+        else {
+
+            return baseAnalysis
+        }
+
+        return replacingRecipient(
+            in:
+                baseAnalysis,
+            with:
+                result.area,
+            detectedText:
+                result.matchedText,
+            reason:
+                "Empfänger \(result.matchedText) wurde im bekannten Layout \(profile.name) erkannt"
+        )
+    }
+
+    private func replacingRecipient(
+        in analysis: AtlasAnalysis,
+        with recipientArea: ArchiveArea,
+        detectedText: String,
+        reason: String
+    ) -> AtlasAnalysis {
+
+        var reasons =
+            analysis.reasons.filter {
+
+                !$0
+                    .localizedCaseInsensitiveContains(
+                        "Empfänger "
+                    )
+            }
+
+        reasons.append(
+            reason
+        )
+
+        return AtlasAnalysis(
+            documentType:
+                analysis.documentType,
+            documentTypeDetectedText:
+                analysis.documentTypeDetectedText,
+            detectedDate:
+                analysis.detectedDate,
+            detectedDateText:
+                analysis.detectedDateText,
+            sender:
+                analysis.sender,
+            senderDetectedText:
+                analysis.senderDetectedText,
+            recipientArea:
+                recipientArea,
+            recipientDetectedText:
+                detectedText,
+            keywords:
+                analysis.keywords,
+            confidence:
+                analysis.confidence,
+            reasons:
+                reasons
+        )
+    }
+
     // MARK: - Visual Sender Analysis
 
     private func applyVisualSenderAnalysis(
@@ -651,6 +1055,23 @@ final class InboxViewModel {
                     pdfURL:
                         url
                 )
+
+        if let boundingBox =
+            visualResult.detectedCompanyBoundingBox {
+
+            visualSenderBoundingBoxesByURL[
+                url
+            ] =
+                boundingBox
+
+        } else {
+
+            visualSenderBoundingBoxesByURL
+                .removeValue(
+                    forKey:
+                        url
+                )
+        }
 
         guard let signature =
             visualResult.signature
@@ -1018,12 +1439,20 @@ final class InboxViewModel {
         return AtlasAnalysis(
             documentType:
                 analysis.documentType,
+            documentTypeDetectedText:
+                analysis.documentTypeDetectedText,
             detectedDate:
                 analysis.detectedDate,
+            detectedDateText:
+                analysis.detectedDateText,
             sender:
                 sender,
+            senderDetectedText:
+                analysis.senderDetectedText,
             recipientArea:
                 analysis.recipientArea,
+            recipientDetectedText:
+                analysis.recipientDetectedText,
             keywords:
                 analysis.keywords,
             confidence:
@@ -1100,6 +1529,11 @@ final class InboxViewModel {
             visualSenderSimilaritiesByURL[
                 url
             ]
+
+        visualSenderBoundingBox =
+            visualSenderBoundingBoxesByURL[
+                url
+            ]
     }
 
     private func clearCurrentVisualSenderState() {
@@ -1117,6 +1551,9 @@ final class InboxViewModel {
             false
 
         visualSenderSimilarity =
+            nil
+
+        visualSenderBoundingBox =
             nil
     }
 
@@ -1149,6 +1586,12 @@ final class InboxViewModel {
             )
 
         visualSenderSimilaritiesByURL
+            .removeValue(
+                forKey:
+                    url
+            )
+
+        visualSenderBoundingBoxesByURL
             .removeValue(
                 forKey:
                     url
@@ -1420,7 +1863,105 @@ final class InboxViewModel {
 
         return nil
     }
+    // MARK: - Apply Corrected Analysis
 
+    @discardableResult
+    func applyCorrection(
+        analysis correctedAnalysis: AtlasAnalysis,
+        destinationURL: URL,
+        for document: DocumentRecord
+    ) -> Bool {
+
+        guard let destinationInfo =
+            archiveDestinationInfo(
+                for:
+                    destinationURL
+            )
+        else {
+
+            errorMessage =
+                "Der gewählte Speicherort gehört zu keinem bekannten Archivbereich."
+
+            return false
+        }
+
+        // Der gewählte Archivbereich und der vom
+        // Benutzer bestätigte Empfänger müssen
+        // zusammenpassen.
+        if let recipientArea =
+            correctedAnalysis.recipientArea,
+           destinationInfo.area != recipientArea {
+
+            errorMessage =
+                "Der gewählte Speicherort gehört zu \(destinationInfo.area.rawValue), als Empfänger wurde aber \(recipientArea.rawValue) gewählt."
+
+            return false
+        }
+
+        let correctedSuggestion =
+            FolderSuggestion(
+                ruleName:
+                    "Vom Benutzer korrigiert",
+                area:
+                    destinationInfo.area,
+                folder:
+                    destinationInfo.relativePath,
+                confidence:
+                    1.0,
+                reasons: [
+                    "Angaben wurden vom Benutzer geprüft und korrigiert",
+                    "Speicherort wurde vom Benutzer bestätigt"
+                ]
+            )
+
+        analysesByURL[
+            document.sourceURL
+        ] =
+            correctedAnalysis
+
+        folderSuggestionsByURL[
+            document.sourceURL
+        ] =
+            correctedSuggestion
+
+        analysis =
+            correctedAnalysis
+
+        folderSuggestion =
+            correctedSuggestion
+
+        manualArchiveDestinationURL =
+            destinationURL
+
+        // Neue Absender dauerhaft in die
+        // Firmenauswahl übernehmen.
+        if let sender =
+            correctedAnalysis.sender {
+
+            learnedCompanyStore.add(
+                sender
+            )
+
+            // Wenn für dieses Dokument bereits eine
+            // visuelle Signatur existiert, lernt Atlas
+            // gleichzeitig den bestätigten Absender.
+            if let signature =
+                visualSignaturesByURL[
+                    document.sourceURL
+                ] {
+
+                visualSenderLearningManager
+                    .confirm(
+                        company:
+                            sender,
+                        signature:
+                            signature
+                    )
+            }
+        }
+
+        return true
+    }
     // MARK: - Filename Suggestion
 
     func suggestFilename(
@@ -1453,6 +1994,76 @@ final class InboxViewModel {
             )
     }
 
+    // MARK: - Edit Suggestions
+
+    func suggestFilename(
+        document: DocumentRecord,
+        sender: String,
+        documentType: DocumentType,
+        date: Date?
+    ) -> String {
+
+        let cleanedSender =
+            sender.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        let temporaryAnalysis =
+            AtlasAnalysis(
+                documentType: documentType,
+                detectedDate: date,
+                sender: cleanedSender.isEmpty
+                    ? nil
+                    : cleanedSender,
+                recipientArea: analysis?.recipientArea,
+                keywords: analysis?.keywords ?? [],
+                confidence: 1.0,
+                reasons: []
+            )
+
+        return buildFilenameSuggestion(
+            from: temporaryAnalysis,
+            fallbackDocument: document
+        )
+    }
+
+    func suggestArchiveDestination(
+        recipientArea: ArchiveArea,
+        sender: String,
+        documentType: DocumentType,
+        for document: DocumentRecord
+    ) -> FolderSuggestion? {
+
+        let cleanedSender =
+            sender.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        let temporaryAnalysis =
+            AtlasAnalysis(
+                documentType: documentType,
+                detectedDate: analysis?.detectedDate,
+                sender: cleanedSender.isEmpty
+                    ? nil
+                    : cleanedSender,
+                recipientArea: recipientArea,
+                keywords: analysis?.keywords ?? [],
+                confidence: 1.0,
+                reasons: []
+            )
+
+        let text =
+            extractedTextsByURL[
+                document.sourceURL
+            ] ?? ""
+
+        return folderSuggestionEngine
+            .suggestFolder(
+                for: temporaryAnalysis,
+                text: text
+            )
+    }
+    
     // MARK: - Rename
 
     func rename(
@@ -1526,6 +2137,16 @@ final class InboxViewModel {
                     sourceURL
                 ]
 
+            let previousInitialAnalysis =
+                initialAnalysesByURL[
+                    sourceURL
+                ]
+
+            let previousInitialFolderSuggestion =
+                initialFolderSuggestionsByURL[
+                    sourceURL
+                ]
+
             let previousExtractedText =
                 extractedTextsByURL[
                     sourceURL
@@ -1556,6 +2177,11 @@ final class InboxViewModel {
                     sourceURL
                 ]
 
+            let previousBoundingBox =
+                visualSenderBoundingBoxesByURL[
+                    sourceURL
+                ]
+
             try FileManager.default
                 .moveItem(
                     at:
@@ -1571,6 +2197,18 @@ final class InboxViewModel {
                 )
 
             folderSuggestionsByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            initialAnalysesByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            initialFolderSuggestionsByURL
                 .removeValue(
                     forKey:
                         sourceURL
@@ -1601,6 +2239,22 @@ final class InboxViewModel {
                     destinationURL
                 ] =
                     previousFolderSuggestion
+            }
+
+            if let previousInitialAnalysis {
+
+                initialAnalysesByURL[
+                    destinationURL
+                ] =
+                    previousInitialAnalysis
+            }
+
+            if let previousInitialFolderSuggestion {
+
+                initialFolderSuggestionsByURL[
+                    destinationURL
+                ] =
+                    previousInitialFolderSuggestion
             }
 
             if let previousExtractedText {
@@ -1651,6 +2305,14 @@ final class InboxViewModel {
                     previousSimilarity
             }
 
+            if let previousBoundingBox {
+
+                visualSenderBoundingBoxesByURL[
+                    destinationURL
+                ] =
+                    previousBoundingBox
+            }
+
             loadDocuments()
 
             return
@@ -1669,6 +2331,106 @@ final class InboxViewModel {
         }
     }
 
+    // MARK: - Atlas Learning Record
+
+    private func saveLearningRecord(
+        for document: DocumentRecord,
+        finalDestinationURL: URL,
+        destinationWasManual: Bool
+    ) {
+
+        let url =
+            document.sourceURL
+
+        guard
+            let finalAnalysis =
+                analysesByURL[
+                    url
+                ] ?? analysis
+        else {
+
+            return
+        }
+
+        let initialAnalysis =
+            initialAnalysesByURL[
+                url
+            ]
+            ?? finalAnalysis
+
+        let initialFolderSuggestion =
+            initialFolderSuggestionsByURL[
+                url
+            ]
+
+        let finalDestinationInfo =
+            archiveDestinationInfo(
+                for:
+                    finalDestinationURL
+            )
+
+        let record =
+            AtlasLearningRecord(
+                filename:
+                    document.sourceURL
+                        .lastPathComponent,
+                suggestedSender:
+                    initialAnalysis.sender,
+                finalSender:
+                    finalAnalysis.sender,
+                suggestedRecipient:
+                    initialAnalysis.recipientArea?
+                        .rawValue,
+                finalRecipient:
+                    finalAnalysis.recipientArea?
+                        .rawValue,
+                suggestedDocumentType:
+                    initialAnalysis.documentType
+                        .rawValue,
+                finalDocumentType:
+                    finalAnalysis.documentType
+                        .rawValue,
+                suggestedDate:
+                    initialAnalysis.detectedDate,
+                finalDate:
+                    finalAnalysis.detectedDate,
+                suggestedArchiveArea:
+                    initialFolderSuggestion?
+                        .area
+                        .rawValue,
+                finalArchiveArea:
+                    finalDestinationInfo?
+                        .area
+                        .rawValue,
+                suggestedFolder:
+                    initialFolderSuggestion?
+                        .folder,
+                finalFolder:
+                    finalDestinationInfo?
+                        .relativePath,
+                archiveDestinationWasManual:
+                    destinationWasManual
+            )
+
+        atlasLearningStore
+            .append(
+                record
+            )
+
+        print(
+            """
+            🧠 Atlas Lernprotokoll
+            --------------------
+            \(record.filename)
+            Absender korrigiert: \(record.senderWasCorrected)
+            Empfänger korrigiert: \(record.recipientWasCorrected)
+            Dokumentart korrigiert: \(record.documentTypeWasCorrected)
+            Datum korrigiert: \(record.dateWasCorrected)
+            --------------------
+            """
+        )
+    }
+
     // MARK: - Archive
 
     func archive(
@@ -1676,6 +2438,9 @@ final class InboxViewModel {
     ) async -> Bool {
 
         errorMessage =
+            nil
+
+        archiveConflict =
             nil
 
         isArchiving =
@@ -1766,11 +2531,91 @@ final class InboxViewModel {
                         )
             }
 
-            let fileMover =
-                archiveFileMover
-
             let sourceURL =
                 document.sourceURL
+
+            // MARK: - Existing File Check
+
+            let expectedTargetURL =
+                destinationFolderURL
+                    .appendingPathComponent(
+                        sourceURL.lastPathComponent
+                    )
+
+            if FileManager.default
+                .fileExists(
+                    atPath:
+                        expectedTargetURL.path
+                ) {
+
+                let suggestedFilename =
+                    nextAvailableArchiveFilename(
+                        originalFilename:
+                            sourceURL.lastPathComponent,
+                        destinationFolderURL:
+                            destinationFolderURL
+                    )
+
+                let sourcePath =
+                    sourceURL.path
+
+                let existingPath =
+                    expectedTargetURL.path
+
+                let isIdentical =
+                    await Task.detached(
+                        priority:
+                            .userInitiated
+                    ) {
+
+                        FileManager.default
+                            .contentsEqual(
+                                atPath:
+                                    sourcePath,
+                                andPath:
+                                    existingPath
+                            )
+                    }
+                    .value
+
+                archiveConflict =
+                    ArchiveConflict(
+                        sourceURL:
+                            sourceURL,
+                        existingURL:
+                            expectedTargetURL,
+                        suggestedFilename:
+                            suggestedFilename,
+                        isIdentical:
+                            isIdentical
+                    )
+
+                if isIdentical {
+
+                    errorMessage =
+                        """
+                        Dieses Dokument ist bereits im Archiv vorhanden.
+
+                        Die vorhandene Datei ist inhaltlich identisch.
+                        """
+
+                } else {
+
+                    errorMessage =
+                        """
+                        Im Zielordner existiert bereits eine Datei mit diesem Namen.
+
+                        Der Inhalt der beiden Dateien ist unterschiedlich.
+                        """
+                }
+
+                return false
+            }
+
+            // MARK: - Move File
+
+            let fileMover =
+                archiveFileMover
 
             let targetURL =
                 destinationFolderURL
@@ -1792,6 +2637,15 @@ final class InboxViewModel {
                     )
                 }
                 .value
+
+            saveLearningRecord(
+                for:
+                    document,
+                finalDestinationURL:
+                    destinationFolderURL,
+                destinationWasManual:
+                    manualDestinationForLearning != nil
+            )
 
             // Nur ein erfolgreich archiviertes
             // manuell gewähltes Ziel wird gelernt.
@@ -1817,6 +2671,18 @@ final class InboxViewModel {
                         document.sourceURL
                 )
 
+            initialAnalysesByURL
+                .removeValue(
+                    forKey:
+                        document.sourceURL
+                )
+
+            initialFolderSuggestionsByURL
+                .removeValue(
+                    forKey:
+                        document.sourceURL
+                )
+
             extractedTextsByURL
                 .removeValue(
                     forKey:
@@ -1831,6 +2697,9 @@ final class InboxViewModel {
             manualArchiveDestinationURL =
                 nil
 
+            archiveConflict =
+                nil
+
             loadDocuments()
 
             clearAnalysis()
@@ -1841,6 +2710,240 @@ final class InboxViewModel {
 
             errorMessage =
                 error.localizedDescription
+
+            return false
+        }
+    }
+
+    // MARK: - Archive Conflict Helpers
+
+    private func nextAvailableArchiveFilename(
+        originalFilename: String,
+        destinationFolderURL: URL
+    ) -> String {
+
+        let originalURL =
+            URL(
+                fileURLWithPath:
+                    originalFilename
+            )
+
+        let filenameWithoutExtension =
+            originalURL
+                .deletingPathExtension()
+                .lastPathComponent
+
+        let fileExtension =
+            originalURL
+                .pathExtension
+
+        var counter =
+            1
+
+        while true {
+
+            let candidateName =
+                "\(filenameWithoutExtension) (\(counter))"
+
+            let candidateURL:
+                URL
+
+            if fileExtension.isEmpty {
+
+                candidateURL =
+                    destinationFolderURL
+                        .appendingPathComponent(
+                            candidateName
+                        )
+
+            } else {
+
+                candidateURL =
+                    destinationFolderURL
+                        .appendingPathComponent(
+                            candidateName
+                        )
+                        .appendingPathExtension(
+                            fileExtension
+                        )
+            }
+
+            if !FileManager.default
+                .fileExists(
+                    atPath:
+                        candidateURL.path
+                ) {
+
+                return candidateURL
+                    .lastPathComponent
+            }
+
+            counter +=
+                1
+        }
+    }
+
+    // MARK: - Resolve Archive Conflict
+
+    func archiveConflictUsingSuggestedFilename() async -> Bool {
+
+        guard let conflict =
+            archiveConflict
+        else {
+
+            errorMessage =
+                "Es ist kein Archivkonflikt vorhanden."
+
+            return false
+        }
+
+        // Bei identischen Dokumenten soll keine
+        // zweite Kopie angelegt werden.
+        guard !conflict.isIdentical
+        else {
+
+            errorMessage =
+                "Das Dokument ist bereits identisch im Archiv vorhanden."
+
+            return false
+        }
+
+        let sourceURL =
+            conflict.sourceURL
+
+        guard let document =
+            documents.first(
+                where: {
+
+                    $0.sourceURL ==
+                        sourceURL
+                }
+            )
+        else {
+
+            errorMessage =
+                "Das zu archivierende Dokument wurde nicht mehr in der Inbox gefunden."
+
+            return false
+        }
+
+        let suggestedName =
+            URL(
+                fileURLWithPath:
+                    conflict.suggestedFilename
+            )
+            .deletingPathExtension()
+            .lastPathComponent
+
+        guard let renamedDocument =
+            rename(
+                document:
+                    document,
+                to:
+                    suggestedName
+            )
+        else {
+
+            return false
+        }
+
+        archiveConflict =
+            nil
+
+        return await archive(
+            document:
+                renamedDocument
+        )
+    }
+
+    // MARK: - Remove Identical Duplicate
+
+    func removeIdenticalArchiveDuplicate() -> Bool {
+
+        errorMessage =
+            nil
+
+        guard let conflict =
+            archiveConflict
+        else {
+
+            errorMessage =
+                "Es ist kein Archivkonflikt vorhanden."
+
+            return false
+        }
+
+        guard conflict.isIdentical
+        else {
+
+            errorMessage =
+                "Die beiden Dokumente sind nicht identisch."
+
+            return false
+        }
+
+        let sourceURL =
+            conflict.sourceURL
+
+        do {
+
+            try FileManager.default
+                .removeItem(
+                    at:
+                        sourceURL
+                )
+
+            analysesByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            folderSuggestionsByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            initialAnalysesByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            initialFolderSuggestionsByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            extractedTextsByURL
+                .removeValue(
+                    forKey:
+                        sourceURL
+                )
+
+            clearStoredVisualSenderState(
+                for:
+                    sourceURL
+            )
+
+            archiveConflict =
+                nil
+
+            manualArchiveDestinationURL =
+                nil
+
+            loadDocuments()
+
+            clearAnalysis()
+
+            return true
+
+        } catch {
+
+            errorMessage =
+                "Das Duplikat konnte nicht aus dem Eingang entfernt werden: \(error.localizedDescription)"
 
             return false
         }
@@ -1861,6 +2964,12 @@ final class InboxViewModel {
         folderSuggestionsByURL =
             [:]
 
+        initialAnalysesByURL =
+            [:]
+
+        initialFolderSuggestionsByURL =
+            [:]
+
         extractedTextsByURL =
             [:]
 
@@ -1877,6 +2986,9 @@ final class InboxViewModel {
             [:]
 
         visualSenderSimilaritiesByURL =
+            [:]
+
+        visualSenderBoundingBoxesByURL =
             [:]
 
         clearAnalysis()

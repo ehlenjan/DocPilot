@@ -1,19 +1,54 @@
 import Foundation
 
-struct AtlasAnalysis {
-    var documentType: DocumentType
-    var detectedDate: Date?
-    var sender: String?
+// MARK: - Atlas Analysis
 
-    // Neu:
+struct AtlasAnalysis {
+
+    var documentType:
+        DocumentType
+
+    // Exakter Text / Suchbegriff,
+    // über den Atlas die Dokumentart erkannt hat.
+    var documentTypeDetectedText:
+        String? = nil
+
+    var detectedDate:
+        Date?
+
+    // Exakter Text, aus dem Atlas
+    // das Datum erkannt hat.
+    var detectedDateText:
+        String? = nil
+
+    var sender:
+        String?
+
+    // Exakter Text / Suchbegriff, über den Atlas
+    // den Absender erkannt hat.
+    var senderDetectedText:
+        String? = nil
+
     // Welchem Archivbereich / Betrieb ist das
     // Dokument als Empfänger zuzuordnen?
-    var recipientArea: ArchiveArea?
+    var recipientArea:
+        ArchiveArea?
 
-    var keywords: [String]
-    var confidence: Double
-    var reasons: [String]
+    // Exakter Text, über den Atlas
+    // den Empfänger erkannt hat.
+    var recipientDetectedText:
+        String? = nil
+
+    var keywords:
+        [String]
+
+    var confidence:
+        Double
+
+    var reasons:
+        [String]
 }
+
+// MARK: - Atlas Analyzer
 
 struct AtlasAnalyzer {
 
@@ -85,44 +120,98 @@ struct AtlasAnalyzer {
         text: String
     ) -> AtlasAnalysis {
 
+        // MARK: - Document Type
+
+        let documentTypeResult =
+            documentClassifier.detectResult(
+                in:
+                    text
+            )
+
         let documentType =
-            documentClassifier.detect(
-                in: text
+            documentTypeResult?
+                .documentType
+            ?? .unknown
+
+        let documentTypeDetectedText =
+            documentTypeResult?
+                .matchedText
+
+        // MARK: - Sender
+
+        let senderResult =
+            companyRecognizer.detectResult(
+                in:
+                    text
             )
 
         let sender =
-            companyRecognizer.detect(
-                in: text
+            senderResult?.company
+
+        let senderDetectedText =
+            senderResult?.matchedText
+
+        // MARK: - Recipient
+
+        let recipientResult =
+            recipientRecognizer.detectResult(
+                in:
+                    text
             )
 
         let recipientArea =
-            recipientRecognizer.detect(
-                in: text
+            recipientResult?.area
+
+        let recipientDetectedText =
+            recipientResult?.matchedText
+
+        // MARK: - Date
+
+        let dateResult =
+            dateRecognizer.detectResult(
+                in:
+                    text
             )
 
         let detectedDate =
-            dateRecognizer.detect(
-                in: text
-            )
+            dateResult?.date
+
+        let detectedDateText =
+            dateResult?.matchedText
+
+        // MARK: - Keywords
 
         let keywords =
             keywordRecognizer.detect(
-                in: text
+                in:
+                    text
             )
+
+        // MARK: - Reasons
 
         let reasons =
             buildReasons(
                 documentType:
                     documentType,
+                documentTypeDetectedText:
+                    documentTypeDetectedText,
                 sender:
                     sender,
+                senderDetectedText:
+                    senderDetectedText,
                 recipientArea:
                     recipientArea,
+                recipientDetectedText:
+                    recipientDetectedText,
                 detectedDate:
                     detectedDate,
+                detectedDateText:
+                    detectedDateText,
                 keywords:
                     keywords
             )
+
+        // MARK: - Confidence
 
         let confidence =
             calculateConfidence(
@@ -138,15 +227,25 @@ struct AtlasAnalyzer {
                     keywords
             )
 
+        // MARK: - Result
+
         return AtlasAnalysis(
             documentType:
                 documentType,
+            documentTypeDetectedText:
+                documentTypeDetectedText,
             detectedDate:
                 detectedDate,
+            detectedDateText:
+                detectedDateText,
             sender:
                 sender,
+            senderDetectedText:
+                senderDetectedText,
             recipientArea:
                 recipientArea,
+            recipientDetectedText:
+                recipientDetectedText,
             keywords:
                 keywords,
             confidence:
@@ -160,43 +259,94 @@ struct AtlasAnalyzer {
 
     private func buildReasons(
         documentType: DocumentType,
+        documentTypeDetectedText: String?,
         sender: String?,
+        senderDetectedText: String?,
         recipientArea: ArchiveArea?,
+        recipientDetectedText: String?,
         detectedDate: Date?,
+        detectedDateText: String?,
         keywords: [String]
     ) -> [String] {
 
         var reasons:
             [String] = []
 
+        // MARK: Dokumentart
+
         if documentType !=
             .unknown {
 
-            reasons.append(
-                "Dokumentart \(documentType.rawValue) erkannt"
-            )
+            if let documentTypeDetectedText,
+               !documentTypeDetectedText.isEmpty {
+
+                reasons.append(
+                    "Dokumentart \(documentType.rawValue) über „\(documentTypeDetectedText)“ erkannt"
+                )
+
+            } else {
+
+                reasons.append(
+                    "Dokumentart \(documentType.rawValue) erkannt"
+                )
+            }
         }
+
+        // MARK: Absender
 
         if let sender {
 
-            reasons.append(
-                "Absender \(sender) erkannt"
-            )
+            if let senderDetectedText,
+               !senderDetectedText.isEmpty {
+
+                reasons.append(
+                    "Absender \(sender) über „\(senderDetectedText)“ erkannt"
+                )
+
+            } else {
+
+                reasons.append(
+                    "Absender \(sender) erkannt"
+                )
+            }
         }
+
+        // MARK: Empfänger
 
         if let recipientArea {
 
-            reasons.append(
-                "Empfänger \(recipientArea.rawValue) erkannt"
-            )
+            if let recipientDetectedText,
+               !recipientDetectedText.isEmpty {
+
+                reasons.append(
+                    "Empfänger \(recipientArea.rawValue) über „\(recipientDetectedText)“ erkannt"
+                )
+
+            } else {
+
+                reasons.append(
+                    "Empfänger \(recipientArea.rawValue) erkannt"
+                )
+            }
         }
 
-        if detectedDate != nil {
+        // MARK: Datum
+
+        if let detectedDateText,
+           !detectedDateText.isEmpty {
+
+            reasons.append(
+                "Datum \(detectedDateText) erkannt"
+            )
+
+        } else if detectedDate != nil {
 
             reasons.append(
                 "Datum erkannt"
             )
         }
+
+        // MARK: Keywords
 
         if !keywords.isEmpty {
 
@@ -234,9 +384,6 @@ struct AtlasAnalyzer {
                 0.20
         }
 
-        // Neu:
-        // Empfänger/Betrieb ist für deinen
-        // Archiv-Workflow ein starkes Merkmal.
         if recipientArea != nil {
 
             score +=

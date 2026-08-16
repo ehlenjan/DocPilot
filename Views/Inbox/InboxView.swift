@@ -18,20 +18,35 @@ struct InboxView: View {
     @State private var filenameDraft =
         ""
 
-    // Merkt sich den letzten Namen,
-    // den Atlas automatisch eingetragen hat.
-    //
-    // So kann Atlas seinen eigenen Vorschlag
-    // später aktualisieren, ohne eine manuelle
-    // Änderung des Benutzers zu überschreiben.
     @State private var lastAutomaticFilenameSuggestion =
         ""
 
-    @State private var isShowingAtlasHelp =
-        false
+    // MARK: - Atlas Edit
 
-    @State private var isShowingArchiveDestinationPicker =
-        false
+    /// Echte URL des im Korrekturfenster
+    /// verwendeten Archivziels.
+    @State private var atlasEditDestinationURL:
+        URL?
+
+    // MARK: - Persistent Split Widths
+
+    /// Wird dauerhaft in UserDefaults gespeichert.
+    /// Dadurch bleiben die Spaltenbreiten auch nach
+    /// einem Programmneustart erhalten.
+    @AppStorage("docpilot.inbox.leftPaneWidth")
+    private var leftPaneWidth:
+        Double = 220
+
+    @AppStorage("docpilot.inbox.rightPaneWidth")
+    private var rightPaneWidth:
+        Double = 400
+
+    /// Startwerte während eines laufenden Ziehvorgangs.
+    @State private var leftDragStartWidth:
+        Double?
+
+    @State private var rightDragStartWidth:
+        Double?
 
     // MARK: - Body
 
@@ -86,126 +101,13 @@ struct InboxView: View {
             )
         }
 
-        // MARK: - Atlas Learning Sheet
-
-        .sheet(
-            isPresented:
-                $isShowingAtlasHelp
-        ) {
-
-            AtlasLearningSheet(
-                currentAnalysis:
-                    viewModel.analysis,
-                currentFolderSuggestion:
-                    viewModel.folderSuggestion,
-                onCancel: {
-
-                    isShowingAtlasHelp =
-                        false
-                },
-                onSave: {
-                    company,
-                    documentType,
-                    detectedDate,
-                    keywords,
-                    archiveArea,
-                    folder in
-
-                    let correctedAnalysis =
-                        AtlasAnalysis(
-                            documentType:
-                                documentType,
-                            detectedDate:
-                                detectedDate,
-                            sender:
-                                company,
-                            recipientArea:
-                                archiveArea,
-                            keywords:
-                                keywords,
-                            confidence:
-                                1.0,
-                            reasons: [
-                                "Informationen wurden vom Benutzer ergänzt",
-                                "Empfängerbereich wurde vom Benutzer bestätigt"
-                            ]
-                        )
-
-                    let correctedDestination =
-                        FolderSuggestion(
-                            ruleName:
-                                "Manuell gelernte Zuordnung",
-                            area:
-                                archiveArea,
-                            folder:
-                                folder,
-                            confidence:
-                                1.0,
-                            reasons: [
-                                "Zielordner wurde vom Benutzer bestätigt"
-                            ]
-                        )
-
-                    LearningEngine()
-                        .remember(
-                            analysis:
-                                correctedAnalysis,
-                            destination:
-                                correctedDestination
-                        )
-
-                    isShowingAtlasHelp =
-                        false
-                }
-            )
-        }
-
-        // MARK: - Archive Destination Picker
-
-        .sheet(
-            isPresented:
-                $isShowingArchiveDestinationPicker
-        ) {
-
-            ArchiveFolderPickerSheet(
-                title:
-                    "Archivziel auswählen",
-                subtitle:
-                    selectedDocument?
-                        .originalFilename,
-                actionTitle:
-                    "Übernehmen",
-                viewModel:
-                    archiveViewModel,
-                isWorking:
-                    false,
-                errorMessage:
-                    archiveViewModel
-                        .errorMessage,
-                onCancel: {
-
-                    isShowingArchiveDestinationPicker =
-                        false
-                },
-                onSelect: {
-                    destinationURL in
-
-                    viewModel
-                        .setManualArchiveDestination(
-                            destinationURL
-                        )
-
-                    isShowingArchiveDestinationPicker =
-                        false
-                }
-            )
-        }
-
         // MARK: - Initial Load
 
         .onAppear {
 
             viewModel.loadDocuments()
+
+            archiveViewModel.reload()
         }
 
         // MARK: - Document Selection
@@ -215,8 +117,13 @@ struct InboxView: View {
                 selectedDocument
         ) { _, newDocument in
 
-            // Bei einem neuen Dokument beginnen wir
-            // wieder beim tatsächlichen Dateinamen.
+            // Falls noch ein Korrekturfenster
+            // für das vorherige Dokument offen ist,
+            // schließen wir es.
+            AtlasEditPanelController
+                .shared
+                .close()
+
             filenameDraft =
                 newDocument?
                     .sourceURL
@@ -227,14 +134,14 @@ struct InboxView: View {
             lastAutomaticFilenameSuggestion =
                 ""
 
+            atlasEditDestinationURL =
+                nil
+
             viewModel.selectAnalysis(
                 for:
                     newDocument
             )
 
-            // Falls für dieses Dokument bereits
-            // eine Analyse im Cache liegt, kann
-            // Atlas den Namen sofort einsetzen.
             if let newDocument {
 
                 applyAutomaticFilenameSuggestion(
@@ -256,6 +163,7 @@ struct InboxView: View {
                 let document =
                     selectedDocument
             else {
+
                 return
             }
 
@@ -263,6 +171,98 @@ struct InboxView: View {
                 for:
                     document
             )
+        }
+        // MARK: - Archive Conflict
+
+        .onChange(
+            of:
+                viewModel.archiveConflict
+        ) { _, newConflict in
+
+            guard let conflict =
+                newConflict
+            else {
+
+                ArchiveConflictPanelController
+                    .shared
+                    .close()
+
+                return
+            }
+
+            ArchiveConflictPanelController
+                .shared
+                .show(
+                    conflict:
+                        conflict,
+
+                    onUseSuggestedFilename: {
+
+                        Task {
+
+                            let preferredIndex =
+                                indexForDocument(
+                                    sourceURL:
+                                        conflict.sourceURL
+                                )
+
+                            let success:
+                                Bool
+
+                            if conflict.isIdentical {
+
+                                success =
+                                    viewModel
+                                        .removeIdenticalArchiveDuplicate()
+
+                            } else {
+
+                                success =
+                                    await viewModel
+                                        .archiveConflictUsingSuggestedFilename()
+                            }
+
+                            guard success
+                            else {
+
+                                return
+                            }
+
+                            AtlasEditPanelController
+                                .shared
+                                .close()
+
+                            ArchiveConflictPanelController
+                                .shared
+                                .close()
+
+                            atlasEditDestinationURL =
+                                nil
+
+                            selectNextDocument(
+                                preferredIndex:
+                                    preferredIndex
+                            )
+                        }
+                    },
+
+                    onChangeFilename: {
+
+                        // Das Korrekturfenster bleibt
+                        // weiterhin geöffnet.
+                        // Dort kann der Dateiname geändert
+                        // und erneut archiviert werden.
+
+                        viewModel.archiveConflict =
+                            nil
+                    },
+
+                    onCancel: {
+
+                        viewModel.archiveConflict =
+                            nil
+                    }
+                )
         }
     }
 
@@ -324,90 +324,91 @@ struct InboxView: View {
         )
     }
 
+    // MARK: - Preferred Edit Sender
+
+    /// Wenn Text- und Grafikerkennung
+    /// unterschiedliche Absender erkennen,
+    /// wird beim Öffnen der Korrektur zunächst
+    /// der visuelle Vorschlag verwendet.
+    private var preferredEditSender:
+        String {
+
+        let textSender =
+            viewModel.analysis?
+                .sender?
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+            ?? ""
+
+        let visualSender =
+            viewModel
+                .visualSenderSuggestion?
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+            ?? ""
+
+        guard
+            !visualSender.isEmpty
+        else {
+
+            return textSender
+        }
+
+        guard
+            !textSender.isEmpty
+        else {
+
+            return visualSender
+        }
+
+        let normalizedText =
+            normalizeCompany(
+                textSender
+            )
+
+        let normalizedVisual =
+            normalizeCompany(
+                visualSender
+            )
+
+        if normalizedText !=
+            normalizedVisual {
+
+            return visualSender
+        }
+
+        return textSender
+    }
+
     // MARK: - Automatic Filename
 
     private func applyAutomaticFilenameSuggestion(
-        for document:
-            DocumentRecord
+        for document: DocumentRecord
     ) {
 
-        // Nur arbeiten, wenn für genau dieses
-        // Dokument tatsächlich eine Analyse vorliegt.
         guard
             viewModel.analysis(
-                for:
-                    document
+                for: document
             ) != nil
         else {
-
-            return
-        }
-
-        let currentFilename =
-            document
-                .sourceURL
-                .deletingPathExtension()
-                .lastPathComponent
-
-        let cleanedDraft =
-            filenameDraft
-                .trimmingCharacters(
-                    in:
-                        .whitespacesAndNewlines
-                )
-
-        let cleanedLastAutomaticSuggestion =
-            lastAutomaticFilenameSuggestion
-                .trimmingCharacters(
-                    in:
-                        .whitespacesAndNewlines
-                )
-
-        // Atlas darf den Namen automatisch setzen,
-        // wenn:
-        //
-        // 1. das Feld leer ist,
-        // 2. noch der echte Originalname drinsteht,
-        // 3. oder der aktuelle Inhalt von Atlas
-        //    selbst stammt.
-        //
-        // Sobald der Benutzer selbst etwas anderes
-        // eingibt, wird nichts mehr überschrieben.
-        let mayReplaceAutomatically =
-            cleanedDraft.isEmpty
-            ||
-            cleanedDraft ==
-                currentFilename
-            ||
-            (
-                !cleanedLastAutomaticSuggestion
-                    .isEmpty
-                &&
-                cleanedDraft ==
-                    cleanedLastAutomaticSuggestion
-            )
-
-        guard mayReplaceAutomatically
-        else {
-
             return
         }
 
         let suggestion =
             viewModel
                 .suggestFilename(
-                    for:
-                        document
+                    for: document
                 )
                 .trimmingCharacters(
-                    in:
-                        .whitespacesAndNewlines
+                    in: .whitespacesAndNewlines
                 )
 
-        guard
-            !suggestion.isEmpty
+        guard !suggestion.isEmpty
         else {
-
             return
         }
 
@@ -417,7 +418,6 @@ struct InboxView: View {
         lastAutomaticFilenameSuggestion =
             suggestion
     }
-
     // MARK: - Content
 
     private func inboxContent(
@@ -430,12 +430,17 @@ struct InboxView: View {
             InboxHeaderView(
                 folderURL:
                     folderURL,
+
                 documentCount:
-                    viewModel.documents.count,
+                    viewModel
+                        .documents
+                        .count,
+
                 onReload: {
 
                     reloadDocuments()
                 },
+
                 onChooseFolder: {
 
                     isChoosingFolder =
@@ -495,77 +500,425 @@ struct InboxView: View {
     private var documentBrowser:
         some View {
 
-        HSplitView {
+        GeometryReader {
+            geometry in
 
-            // Dokumentliste
+            HStack(
+                spacing: 0
+            ) {
 
-            DocumentListView(
-                documents:
-                    viewModel.documents,
-                analysisForDocument: {
-                    document in
+                // MARK: Dokumentliste
 
-                    viewModel.analysis(
-                        for:
-                            document
+                DocumentListView(
+                    documents:
+                        viewModel.documents,
+
+                    analysisForDocument: {
+                        document in
+
+                        viewModel.analysis(
+                            for:
+                                document
+                        )
+                    },
+
+                    selection:
+                        $selectedDocument
+                )
+                .frame(
+                    width:
+                        CGFloat(
+                            leftPaneWidth
+                        )
+                )
+                .frame(
+                    maxHeight:
+                        .infinity,
+                    alignment:
+                        .top
+                )
+
+                leftSplitDivider
+
+                // MARK: PDF-Vorschau
+
+                documentPreview
+                    .frame(
+                        minWidth:
+                            420,
+                        maxWidth:
+                            .infinity,
+                        maxHeight:
+                            .infinity,
+                        alignment:
+                            .top
                     )
-                },
-                selection:
-                    $selectedDocument
-            )
+
+                rightSplitDivider
+
+                // MARK: Atlas
+
+                atlasReview
+                    .frame(
+                        width:
+                            CGFloat(
+                                rightPaneWidth
+                            )
+                    )
+                    .frame(
+                        maxHeight:
+                            .infinity,
+                        alignment:
+                            .top
+                    )
+            }
             .frame(
-                minWidth:
-                    260,
-                idealWidth:
-                    320
-            )
-            .frame(
-                maxHeight:
-                    .infinity,
+                width:
+                    geometry.size.width,
+                height:
+                    geometry.size.height,
                 alignment:
-                    .top
+                    .topLeading
             )
+            .onAppear {
 
-            // PDF-Vorschau
-
-            documentPreview
-                .frame(
-                    minWidth:
-                        420,
-                    maxHeight:
-                        .infinity,
-                    alignment:
-                        .top
+                normalizeSplitWidths(
+                    totalWidth:
+                        geometry.size.width
                 )
+            }
+            .onChange(
+                of:
+                    geometry.size.width
+            ) { _, newWidth in
 
-            // Atlas
-
-            atlasPanel
-                .frame(
-                    minWidth:
-                        360,
-                    idealWidth:
-                        430,
-                    maxWidth:
-                        520
+                normalizeSplitWidths(
+                    totalWidth:
+                        newWidth
                 )
-                .frame(
-                    maxHeight:
-                        .infinity,
-                    alignment:
-                        .top
-                )
+            }
         }
-        .frame(
-            maxWidth:
-                .infinity,
-            maxHeight:
-                .infinity,
-            alignment:
-                .topLeading
-        )
     }
 
+    // MARK: - Split Dividers
+
+    private var leftSplitDivider:
+        some View {
+
+        splitDivider
+            .gesture(
+                DragGesture()
+                    .onChanged {
+                        value in
+
+                        if leftDragStartWidth ==
+                            nil {
+
+                            leftDragStartWidth =
+                                leftPaneWidth
+                        }
+
+                        let start =
+                            leftDragStartWidth
+                            ?? leftPaneWidth
+
+                        let proposed =
+                            start +
+                            Double(
+                                value.translation.width
+                            )
+
+                        leftPaneWidth =
+                            min(
+                                max(
+                                    proposed,
+                                    180
+                                ),
+                                420
+                            )
+                    }
+                    .onEnded { _ in
+
+                        leftDragStartWidth =
+                            nil
+                    }
+            )
+            .help(
+                "Breite der Dokumentliste ändern"
+            )
+    }
+
+    private var rightSplitDivider:
+        some View {
+
+        splitDivider
+            .gesture(
+                DragGesture()
+                    .onChanged {
+                        value in
+
+                        if rightDragStartWidth ==
+                            nil {
+
+                            rightDragStartWidth =
+                                rightPaneWidth
+                        }
+
+                        let start =
+                            rightDragStartWidth
+                            ?? rightPaneWidth
+
+                        // Ziehen nach rechts:
+                        // Atlas-Bereich wird schmaler.
+                        let proposed =
+                            start -
+                            Double(
+                                value.translation.width
+                            )
+
+                        rightPaneWidth =
+                            min(
+                                max(
+                                    proposed,
+                                    340
+                                ),
+                                520
+                            )
+                    }
+                    .onEnded { _ in
+
+                        rightDragStartWidth =
+                            nil
+                    }
+            )
+            .help(
+                "Breite des Atlas-Bereichs ändern"
+            )
+    }
+
+    private var splitDivider:
+        some View {
+
+        Rectangle()
+            .fill(
+                Color.clear
+            )
+            .frame(
+                width: 8
+            )
+            .overlay {
+
+                Rectangle()
+                    .fill(
+                        Color(
+                            nsColor:
+                                .separatorColor
+                        )
+                    )
+                    .frame(
+                        width: 1
+                    )
+            }
+            .contentShape(
+                Rectangle()
+            )
+    }
+
+    // MARK: - Split Width Validation
+
+    private func normalizeSplitWidths(
+        totalWidth: CGFloat
+    ) {
+
+        // Normale Grenzen unabhängig von
+        // Dokumentwechseln oder Archivierung.
+        leftPaneWidth =
+            min(
+                max(
+                    leftPaneWidth,
+                    180
+                ),
+                420
+            )
+
+        rightPaneWidth =
+            min(
+                max(
+                    rightPaneWidth,
+                    340
+                ),
+                520
+            )
+
+        // Bei einem sehr schmalen Fenster muss
+        // die PDF-Mitte mindestens 420 pt behalten.
+        let dividerSpace:
+            Double = 16
+
+        let minimumPDFWidth:
+            Double = 420
+
+        let availableForSides =
+            max(
+                0,
+                Double(
+                    totalWidth
+                )
+                -
+                minimumPDFWidth
+                -
+                dividerSpace
+            )
+
+        let currentSides =
+            leftPaneWidth +
+            rightPaneWidth
+
+        guard
+            currentSides >
+                availableForSides,
+            availableForSides >
+                0
+        else {
+
+            return
+        }
+
+        // Zuerst die linke Liste reduzieren,
+        // da dort am ehesten Platz eingespart
+        // werden kann.
+        let excess =
+            currentSides -
+            availableForSides
+
+        let reducibleLeft =
+            max(
+                0,
+                leftPaneWidth -
+                180
+            )
+
+        let leftReduction =
+            min(
+                excess,
+                reducibleLeft
+            )
+
+        leftPaneWidth -=
+            leftReduction
+
+        let remainingExcess =
+            excess -
+            leftReduction
+
+        if remainingExcess >
+            0 {
+
+            rightPaneWidth =
+                max(
+                    340,
+                    rightPaneWidth -
+                    remainingExcess
+                )
+        }
+    }
+
+    // MARK: - PDF Evidence
+
+    private func pdfEvidence(
+        for document: DocumentRecord
+    ) -> [PDFEvidence] {
+
+        guard
+            let analysis =
+                viewModel.analysis(
+                    for: document
+                )
+        else {
+
+            return []
+        }
+
+        var result:
+            [PDFEvidence] = []
+
+        // MARK: Datum
+
+        if let detectedDateText =
+            analysis.detectedDateText?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+           !detectedDateText.isEmpty {
+
+            result.append(
+                PDFEvidence(
+                    text:
+                        detectedDateText,
+                    kind:
+                        .date
+                )
+            )
+        }
+
+        // MARK: Absender
+
+        if let senderDetectedText =
+            analysis.senderDetectedText?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+           !senderDetectedText.isEmpty {
+
+            result.append(
+                PDFEvidence(
+                    text:
+                        senderDetectedText,
+                    kind:
+                        .sender
+                )
+            )
+        }
+        
+        // MARK: Empfänger
+
+        if let recipientDetectedText =
+            analysis.recipientDetectedText?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+           !recipientDetectedText.isEmpty {
+
+            result.append(
+                PDFEvidence(
+                    text:
+                        recipientDetectedText,
+                    kind:
+                        .recipient
+                )
+            )
+        }
+        
+        // MARK: Dokumentenart
+
+        if let documentTypeDetectedText =
+            analysis.documentTypeDetectedText?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+           !documentTypeDetectedText.isEmpty {
+
+            result.append(
+                PDFEvidence(
+                    text:
+                        documentTypeDetectedText,
+                    kind:
+                        .documentType
+                )
+            )
+        }
+        return result
+    }
     // MARK: - PDF Preview
 
     @ViewBuilder
@@ -577,7 +930,14 @@ struct InboxView: View {
 
             PDFPreviewView(
                 url:
-                    document.sourceURL
+                    document.sourceURL,
+                evidence:
+                    pdfEvidence(
+                        for:
+                            document
+                    ),
+                visualSenderBoundingBox:
+                    viewModel.visualSenderBoundingBox
             )
             .frame(
                 minWidth:
@@ -608,201 +968,62 @@ struct InboxView: View {
             )
         }
     }
-
-    // MARK: - Atlas Panel
+    // MARK: - Atlas Review
 
     @ViewBuilder
-    private var atlasPanel:
+    private var atlasReview:
         some View {
 
         if let document =
             selectedDocument {
 
-            AtlasPanelView(
+            AtlasReviewView(
                 document:
                     document,
-                filenameDraft:
-                    $filenameDraft,
-                extractedText:
-                    viewModel
-                        .extractedText,
-                textExtractionMessage:
-                    viewModel
-                        .textExtractionMessage,
-                analysis:
-                    viewModel
-                        .analysis,
-                folderSuggestion:
-                    viewModel
-                        .folderSuggestion,
-                manualArchiveDestinationURL:
-                    viewModel
-                        .manualArchiveDestinationURL,
 
-                // MARK: Visueller Absender
+                analysis:
+                    viewModel.analysis,
+
+                folderSuggestion:
+                    viewModel.folderSuggestion,
+
+                filenameDraft:
+                    filenameDraft,
+
+                // MARK: Visuelle Absendererkennung
 
                 visualSenderSuggestion:
                     viewModel
                         .visualSenderSuggestion,
 
-                visualSenderConfirmationCount:
-                    viewModel
-                        .visualSenderConfirmationCount,
-
-                visualSenderNeedsConfirmation:
-                    viewModel
-                        .visualSenderNeedsConfirmation,
-
                 visualSenderSimilarity:
                     viewModel
                         .visualSenderSimilarity,
 
-                availableVisualSenderCompanies:
+                visualSenderConfirmationCount:
                     viewModel
-                        .availableVisualSenderCompanies,
-
-                onConfirmVisualSender: {
-                    company in
-
-                    let confirmed =
-                        viewModel
-                            .confirmVisualSender(
-                                company:
-                                    company,
-                                for:
-                                    document
-                            )
-
-                    if confirmed {
-
-                        applyAutomaticFilenameSuggestion(
-                            for:
-                                document
-                        )
-                    }
-                },
-
-                // MARK: Status
-
-                isAnalyzing:
-                    viewModel
-                        .isAnalyzing,
+                        .visualSenderConfirmationCount,
 
                 isArchiving:
-                    viewModel
-                        .isArchiving,
+                    viewModel.isArchiving,
 
-                // MARK: Analyse
-
-                onAnalyzeDocument: {
-
-                    viewModel.analyze(
-                        document:
-                            document
-                    )
-                },
-
-                // MARK: Lernen
-
-                onRememberSuggestion: {
-
-                    viewModel
-                        .rememberCurrentSuggestion()
-                },
-
-                onHelpAtlas: {
-
-                    isShowingAtlasHelp =
-                        true
-                },
-
-                // MARK: Archivziel
-
-                onChangeArchiveDestination: {
-
-                    isShowingArchiveDestinationPicker =
-                        true
-                },
-
-                onClearArchiveDestination: {
-
-                    viewModel
-                        .clearManualArchiveDestination()
-                },
-
-                // MARK: Nur Umbenennen
-
-                onRename: {
-
-                    renameSelectedDocument()
-                },
-
-                // MARK: Umbenennen + Archivieren
+                // MARK: Alles stimmt
 
                 onArchive: {
 
-                    Task {
+                    archiveReviewedDocument(
+                        document
+                    )
+                },
 
-                        var documentToArchive =
+                // MARK: Angaben korrigieren
+
+                onEdit: {
+
+                    openAtlasEditPanel(
+                        for:
                             document
-
-                        let currentFilename =
-                            document
-                                .sourceURL
-                                .deletingPathExtension()
-                                .lastPathComponent
-
-                        let cleanedDraft =
-                            filenameDraft
-                                .trimmingCharacters(
-                                    in:
-                                        .whitespacesAndNewlines
-                                )
-
-                        // Der sichtbare Dateiname wird
-                        // zuerst wirklich auf die Datei
-                        // angewendet.
-                        if !cleanedDraft.isEmpty &&
-                            cleanedDraft !=
-                                currentFilename {
-
-                            guard let renamedDocument =
-                                viewModel.rename(
-                                    document:
-                                        document,
-                                    to:
-                                        cleanedDraft
-                                )
-                            else {
-
-                                return
-                            }
-
-                            documentToArchive =
-                                renamedDocument
-                        }
-
-                        // Anschließend wird die
-                        // umbenannte Datei archiviert.
-                        let success =
-                            await viewModel
-                                .archive(
-                                    document:
-                                        documentToArchive
-                                )
-
-                        if success {
-
-                            selectedDocument =
-                                nil
-
-                            filenameDraft =
-                                ""
-
-                            lastAutomaticFilenameSuggestion =
-                                ""
-                        }
-                    }
+                    )
                 }
             )
             .frame(
@@ -841,6 +1062,387 @@ struct InboxView: View {
         }
     }
 
+    // MARK: - Open Atlas Edit Panel
+
+    private func openAtlasEditPanel(
+        for document:
+            DocumentRecord
+    ) {
+
+        // Wenn bereits ein manuelles Ziel
+        // existiert, verwenden wir dieses.
+        //
+        // Ansonsten startet AtlasEditView ohne
+        // festgelegte URL und kann mit seiner
+        // neuen Automatik selbst einen real
+        // vorhandenen Zielordner finden.
+        if let manualURL =
+            viewModel
+                .manualArchiveDestinationURL {
+
+            atlasEditDestinationURL =
+                manualURL
+
+        } else {
+
+            atlasEditDestinationURL =
+                nil
+        }
+
+        AtlasEditPanelController
+            .shared
+            .show(
+                document:
+                    document,
+
+                availableCompanies:
+                    viewModel
+                        .availableVisualSenderCompanies,
+
+                initialRecipientArea:
+                    viewModel.analysis?
+                        .recipientArea
+                    ?? .business,
+
+                initialSender:
+                    preferredEditSender,
+
+                initialDocumentType:
+                    viewModel.analysis?
+                        .documentType
+                    ?? .unknown,
+
+                initialDate:
+                    viewModel.analysis?
+                        .detectedDate,
+
+                destinationURL:
+                    $atlasEditDestinationURL,
+
+                initialFilename:
+                    filenameDraft,
+
+                archiveViewModel:
+                    archiveViewModel,
+
+                isWorking:
+                    viewModel.isArchiving,
+
+                onSaveAndArchive: {
+                    values in
+
+                    saveCorrectionAndArchive(
+                        values:
+                            values,
+                        document:
+                            document
+                    )
+                }
+            )
+    }
+
+    // MARK: - Save Correction + Archive
+
+    private func saveCorrectionAndArchive(
+        values:
+            AtlasEditValues,
+        document:
+            DocumentRecord
+    ) {
+
+        guard let destinationURL =
+            values.destinationURL
+        else {
+
+            viewModel.errorMessage =
+                "Bitte wähle einen Speicherort aus."
+
+            return
+        }
+
+        // Schlüsselwörter werden weiterhin
+        // automatisch von Atlas verwaltet.
+        let existingKeywords =
+            viewModel
+                .analysis(
+                    for:
+                        document
+                )?
+                .keywords
+            ?? []
+
+        let correctedAnalysis =
+            AtlasAnalysis(
+                documentType:
+                    values.documentType,
+
+                detectedDate:
+                    values.detectedDate,
+
+                sender:
+                    values.sender,
+
+                recipientArea:
+                    values.recipientArea,
+
+                keywords:
+                    existingKeywords,
+
+                confidence:
+                    1.0,
+
+                reasons: [
+                    "Angaben wurden vom Benutzer geprüft und korrigiert",
+                    "Empfänger wurde vom Benutzer bestätigt",
+                    "Absender wurde vom Benutzer bestätigt",
+                    "Dokumentart wurde vom Benutzer bestätigt",
+                    "Speicherort wurde vom Benutzer bestätigt"
+                ]
+            )
+
+        // Korrigierte Analyse und echten
+        // Speicherort im ViewModel speichern.
+        let applied =
+            viewModel.applyCorrection(
+                analysis:
+                    correctedAnalysis,
+                destinationURL:
+                    destinationURL,
+                for:
+                    document
+            )
+
+        guard applied
+        else {
+
+            return
+        }
+
+        let correctedFilename =
+            values.filename
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        filenameDraft =
+            correctedFilename
+
+        // Benutzer hat diesen Dateinamen
+        // ausdrücklich bestätigt.
+        lastAutomaticFilenameSuggestion =
+            correctedFilename
+
+        Task {
+
+            let preferredIndex =
+                indexForDocument(
+                    sourceURL:
+                        document.sourceURL
+                )
+
+            var documentToArchive =
+                document
+
+            let currentFilename =
+                document
+                    .sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent
+
+            // MARK: Rename
+
+            if !correctedFilename.isEmpty &&
+                correctedFilename !=
+                    currentFilename {
+
+                guard let renamedDocument =
+                    viewModel.rename(
+                        document:
+                            document,
+                        to:
+                            correctedFilename
+                    )
+                else {
+
+                    return
+                }
+
+                documentToArchive =
+                    renamedDocument
+            }
+
+            // MARK: Archive
+
+            let success =
+                await viewModel.archive(
+                    document:
+                        documentToArchive
+                )
+
+            guard success
+            else {
+
+                return
+            }
+
+            // MARK: Cleanup
+
+            atlasEditDestinationURL =
+                nil
+
+            selectNextDocument(
+                preferredIndex:
+                    preferredIndex
+            )
+        }
+    }
+
+    // MARK: - Archive Reviewed Document
+
+    private func archiveReviewedDocument(
+        _ document:
+            DocumentRecord
+    ) {
+
+        Task {
+
+            let preferredIndex =
+                indexForDocument(
+                    sourceURL:
+                        document.sourceURL
+                )
+
+            var documentToArchive =
+                document
+
+            let currentFilename =
+                document
+                    .sourceURL
+                    .deletingPathExtension()
+                    .lastPathComponent
+
+            let cleanedDraft =
+                filenameDraft
+                    .trimmingCharacters(
+                        in:
+                            .whitespacesAndNewlines
+                    )
+
+            // Den Atlas-Dateinamen zuerst
+            // auf die PDF anwenden.
+            if !cleanedDraft.isEmpty &&
+                cleanedDraft !=
+                    currentFilename {
+
+                guard let renamedDocument =
+                    viewModel.rename(
+                        document:
+                            document,
+                        to:
+                            cleanedDraft
+                    )
+                else {
+
+                    return
+                }
+
+                documentToArchive =
+                    renamedDocument
+            }
+
+            let success =
+                await viewModel.archive(
+                    document:
+                        documentToArchive
+                )
+
+            if success {
+
+                AtlasEditPanelController
+                    .shared
+                    .close()
+
+                atlasEditDestinationURL =
+                    nil
+
+                selectNextDocument(
+                    preferredIndex:
+                        preferredIndex
+                )
+            }
+        }
+    }
+
+    // MARK: - Next Document
+
+    private func indexForDocument(
+        sourceURL: URL
+    ) -> Int {
+
+        viewModel.documents
+            .firstIndex(
+                where: {
+
+                    $0.sourceURL ==
+                        sourceURL
+                }
+            )
+        ?? 0
+    }
+
+    private func selectNextDocument(
+        preferredIndex: Int
+    ) {
+
+        guard
+            !viewModel.documents.isEmpty
+        else {
+
+            selectedDocument =
+                nil
+
+            filenameDraft =
+                ""
+
+            lastAutomaticFilenameSuggestion =
+                ""
+
+            atlasEditDestinationURL =
+                nil
+
+            return
+        }
+
+        let nextIndex =
+            min(
+                preferredIndex,
+                viewModel.documents.count - 1
+            )
+
+        let nextDocument =
+            viewModel.documents[
+                nextIndex
+            ]
+
+        // Die Dokumentliste wurde beim Archivieren
+        // bereits neu geladen. Zuerst die alte, nun
+        // nicht mehr vorhandene Auswahl lösen.
+        selectedDocument =
+            nil
+
+        // SwiftUI einen UI-Zyklus geben, damit die
+        // erneuerte Liste die neue Auswahl sicher
+        // übernehmen kann.
+        Task { @MainActor in
+
+            await Task.yield()
+
+            selectedDocument =
+                nextDocument
+        }
+    }
+
     // MARK: - Folder Selection
 
     private func handleFolderSelection(
@@ -859,6 +1461,10 @@ struct InboxView: View {
                 return
             }
 
+            AtlasEditPanelController
+                .shared
+                .close()
+
             selectedDocument =
                 nil
 
@@ -868,13 +1474,14 @@ struct InboxView: View {
             lastAutomaticFilenameSuggestion =
                 ""
 
-            viewModel
-                .clearAnalysis()
+            atlasEditDestinationURL =
+                nil
 
-            viewModel
-                .selectFolder(
-                    selectedFolder
-                )
+            viewModel.clearAnalysis()
+
+            viewModel.selectFolder(
+                selectedFolder
+            )
 
         case .failure(let error):
 
@@ -891,6 +1498,10 @@ struct InboxView: View {
             selectedDocument?
                 .sourceURL
 
+        AtlasEditPanelController
+            .shared
+            .close()
+
         viewModel.loadDocuments()
 
         if let previousURL,
@@ -906,11 +1517,10 @@ struct InboxView: View {
             selectedDocument =
                 refreshedDocument
 
-            viewModel
-                .selectAnalysis(
-                    for:
-                        refreshedDocument
-                )
+            viewModel.selectAnalysis(
+                for:
+                    refreshedDocument
+            )
 
             applyAutomaticFilenameSuggestion(
                 for:
@@ -928,53 +1538,41 @@ struct InboxView: View {
             lastAutomaticFilenameSuggestion =
                 ""
 
-            viewModel
-                .clearAnalysis()
+            atlasEditDestinationURL =
+                nil
+
+            viewModel.clearAnalysis()
         }
     }
+   
+    // MARK: - Normalize Company
 
-    // MARK: - Rename
+    private func normalizeCompany(
+        _ value:
+            String
+    ) -> String {
 
-    private func renameSelectedDocument() {
-
-        guard let document =
-            selectedDocument
-        else {
-
-            return
-        }
-
-        guard let renamedDocument =
-            viewModel.rename(
-                document:
-                    document,
-                to:
-                    filenameDraft
+        value
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
             )
-        else {
-
-            return
-        }
-
-        selectedDocument =
-            renamedDocument
-
-        filenameDraft =
-            renamedDocument
-                .sourceURL
-                .deletingPathExtension()
-                .lastPathComponent
-
-        lastAutomaticFilenameSuggestion =
-            filenameDraft
-
-        viewModel
-            .selectAnalysis(
-                for:
-                    renamedDocument
+            .folding(
+                options: [
+                    .caseInsensitive,
+                    .diacriticInsensitive
+                ],
+                locale:
+                    Locale(
+                        identifier:
+                            "de_DE"
+                    )
             )
+            .lowercased()
     }
 }
+
+// MARK: - Preview
 
 #Preview {
 

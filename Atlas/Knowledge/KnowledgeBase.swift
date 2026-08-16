@@ -82,6 +82,7 @@ struct DocumentTypeRule: Decodable, Identifiable {
 
     var documentType: DocumentType {
         switch type {
+
         case "invoice":
             return .invoice
 
@@ -96,6 +97,12 @@ struct DocumentTypeRule: Decodable, Identifiable {
 
         case "weighingReport":
             return .weighingReport
+
+        case "invitation":
+            return .invitation
+
+        case "examination":
+            return .examination
 
         case "form":
             return .form
@@ -175,6 +182,7 @@ struct FolderRule: Decodable, Identifiable {
         _ documentType: DocumentType
     ) -> String {
         switch documentType {
+
         case .invoice:
             return "invoice"
 
@@ -189,6 +197,12 @@ struct FolderRule: Decodable, Identifiable {
 
         case .weighingReport:
             return "weighingReport"
+
+        case .invitation:
+            return "invitation"
+
+        case .examination:
+            return "examination"
 
         case .form:
             return "form"
@@ -216,6 +230,7 @@ enum KnowledgeBaseError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+
         case .fileNotFound:
             return "Die Datei knowledge.json wurde nicht gefunden."
 

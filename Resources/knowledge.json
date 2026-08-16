@@ -43,6 +43,23 @@
       ]
     },
     {
+      "name": "Norlac",
+      "keywords": [
+        "norlac",
+        "norlac gmbh"
+      ]
+    },
+    {
+      "name": "MBR",
+      "keywords": [
+        "mbr-sittensen.de",
+        "info@mbr-sittensen.de",
+        "viehhandels union",
+        "viehhandels union gmbh",
+        "familienunternehmen mahnken"
+      ]
+    },
+    {
       "name": "Apple",
       "keywords": [
         "apple",
@@ -75,7 +92,16 @@
       "keywords": [
         "lieferschein",
         "lieferschein-nr",
-        "lieferdatum"
+        "lieferdatum",
+        "handelspapier",
+        "handelspapiere",
+        "begleitpapier",
+        "wiegenote",
+        "tierische nebenprodukte",
+        "abholschein",
+        "betriebsidentifikation",
+        "lebensmittelketteninformation",
+        "lieferant / ferkelerzeuger"
       ]
     },
     {
@@ -83,8 +109,39 @@
       "displayName": "Schlachtprotokoll",
       "keywords": [
         "schlachtprotokoll",
-        "schlachtdatum",
-        "wiegeprotokoll"
+        "schlachtdatum"
+      ]
+    },
+    {
+      "type": "invitation",
+      "displayName": "Einladung",
+      "keywords": [
+        "einladung",
+        "einladung zur",
+        "wir laden sie ein",
+        "hiermit laden wir",
+        "herzlich eingeladen"
+      ]
+    },
+    {
+      "type": "examination",
+      "displayName": "Untersuchung",
+      "keywords": [
+        "untersuchungsbericht",
+        "untersuchungsergebnis",
+        "untersuchungsergebnisse",
+        "laboruntersuchung",
+        "laborbericht"
+      ]
+    },
+    {
+      "type": "weighingReport",
+      "displayName": "Wiegeprotokoll",
+      "keywords": [
+        "wiegeprotokoll",
+        "wiegedatum",
+        "verwiegung",
+        "schlachtgewicht"
       ]
     },
     {
@@ -101,6 +158,14 @@
       "keywords": [
         "formular",
         "fragebogen"
+      ]
+    },
+    {
+      "type": "letter",
+      "displayName": "Schreiben",
+      "keywords": [
+        "anschreiben",
+        "mitteilung"
       ]
     },
     {
@@ -122,16 +187,18 @@
       "documentTypes": [
         "deliveryNote"
       ],
-      "companies": [
-        "RAISA",
-        "Team Agrar"
+      "companies": [],
+      "keywords": []
+    },
+    {
+      "name": "Betrieb Lieferscheine",
+      "area": "Betrieb",
+      "folder": "Lieferscheine",
+      "documentTypes": [
+        "deliveryNote"
       ],
-      "keywords": [
-        "futtermittel",
-        "hage",
-        "vzf",
-        "schweine"
-      ]
+      "companies": [],
+      "keywords": []
     },
     {
       "name": "EHA Schlachtprotokolle",
@@ -145,7 +212,6 @@
       ],
       "keywords": [
         "schlachtdatum",
-        "wiegeprotokoll",
         "schweine",
         "row"
       ]
@@ -159,9 +225,7 @@
         "Rendac"
       ],
       "keywords": [
-        "handelspapier",
-        "kadaver",
-        "tierische nebenprodukte"
+        "kadaver"
       ]
     },
     {
@@ -197,6 +261,16 @@
         "homepod",
         "privat"
       ]
+    },
+    {
+      "name": "Privat Einladungen",
+      "area": "Jan Ehlen",
+      "folder": "Einladungen",
+      "documentTypes": [
+        "invitation"
+      ],
+      "companies": [],
+      "keywords": []
     },
     {
       "name": "Feuerwehr Ausbildung",

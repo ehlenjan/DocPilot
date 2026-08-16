@@ -82,7 +82,13 @@ struct DocumentRowView: View {
 
         case .deliveryNote:
             return "shippingbox"
+            
+        case .invitation:
+            return "envelope.open"
 
+        case .examination:
+            return "cross.case"
+            
         case .slaughterReport:
             return "list.clipboard"
 
