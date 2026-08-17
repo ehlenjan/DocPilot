@@ -7,7 +7,10 @@ struct SenderVisualRecognizer {
 
     private let knowledgeBase:
         KnowledgeBase
-
+    
+    private let learnedCompanySignatureStore =
+        LearnedCompanySignatureStore()
+    
     init(
         knowledgeBase: KnowledgeBase
     ) {
@@ -617,8 +620,10 @@ struct SenderVisualRecognizer {
         in items: [RecognizedTextItem]
     ) -> CompanyMatch? {
 
-        var bestMatch:
+        var bestKnowledgeMatch:
             CompanyMatch?
+
+        // MARK: - 1. KnowledgeBase
 
         for company in
             knowledgeBase.companies {
@@ -681,28 +686,212 @@ struct SenderVisualRecognizer {
                                 score
                         )
 
-                    if bestMatch == nil ||
+                    if bestKnowledgeMatch == nil
+                        ||
                         candidate.score >
-                            bestMatch!.score {
+                            bestKnowledgeMatch!.score {
 
-                        bestMatch =
+                        bestKnowledgeMatch =
                             candidate
                     }
                 }
             }
         }
 
-        guard
-            let bestMatch,
-            bestMatch.score >= 50
-        else {
+        // MARK: - 2. Learned Company Signatures
+
+        // Der komplette OCR-Text des Kopfbereichs
+        // wird zusätzlich mit den von Atlas
+        // gelernten Firmenmerkmalen verglichen.
+        let recognizedHeaderText =
+            items
+                .map(
+                    \.text
+                )
+                .joined(
+                    separator:
+                        "\n"
+                )
+
+        let learnedMatch =
+            learnedCompanySignatureStore
+                .bestMatch(
+                    in:
+                        recognizedHeaderText
+                )
+
+        var bestLearnedMatch:
+            CompanyMatch?
+
+        if let learnedMatch,
+           learnedMatch.isReliable {
+
+            // Möglichst die konkrete OCR-Zeile finden,
+            // die eines der gelernten Merkmale enthält.
+            var matchingItem:
+                RecognizedTextItem?
+
+            var matchingSignal:
+                String?
+
+            for signal in
+                learnedMatch.matchedSignals {
+
+                let normalizedSignal =
+                    normalize(
+                        signal
+                    )
+
+                guard
+                    !normalizedSignal.isEmpty
+                else {
+
+                    continue
+                }
+
+                if let item =
+                    items.first(
+                        where: {
+
+                            normalize(
+                                $0.text
+                            )
+                            .contains(
+                                normalizedSignal
+                            )
+                        }
+                    ) {
+
+                    matchingItem =
+                        item
+
+                    matchingSignal =
+                        signal
+
+                    break
+                }
+            }
+
+            if let matchingItem {
+
+                bestLearnedMatch =
+                    CompanyMatch(
+                        company:
+                            learnedMatch.company,
+                        matchedText:
+                            matchingItem.text,
+                        boundingBox:
+                            matchingItem.boundingBox,
+                        score:
+                            learnedMatch.score
+                                + 20
+                    )
+
+            } else {
+
+                // Das Lernen hat den gesamten Kopf
+                // sicher erkannt, aber das Merkmal
+                // lässt sich keiner einzelnen OCR-Zeile
+                // eindeutig zuordnen.
+                //
+                // Dann verwenden wir den Treffer trotzdem,
+                // aber ohne erfundene BoundingBox.
+                //
+                // Da CompanyMatch aktuell zwingend eine
+                // BoundingBox verlangt, nehmen wir hier
+                // nur einen Treffer an, wenn wenigstens
+                // ein OCR-Element vorhanden ist.
+                if let firstItem =
+                    items.first {
+
+                    bestLearnedMatch =
+                        CompanyMatch(
+                            company:
+                                learnedMatch.company,
+                            matchedText:
+                                matchingSignal
+                                ??
+                                learnedMatch.company,
+                            boundingBox:
+                                firstItem.boundingBox,
+                            score:
+                                learnedMatch.score
+                        )
+                }
+            }
+        }
+
+        // MARK: - 3. Best Result
+
+        switch (
+            bestKnowledgeMatch,
+            bestLearnedMatch
+        ) {
+
+        case let (
+            knowledge?,
+            learned?
+        ):
+
+            // Beide Wege erkennen dieselbe Firma:
+            // Das ist besonders vertrauenswürdig.
+            if normalize(
+                knowledge.company
+            )
+            ==
+            normalize(
+                learned.company
+            ) {
+
+                if learned.score >
+                    knowledge.score {
+
+                    return learned
+                }
+
+                return knowledge
+            }
+
+            // Bei widersprüchlichen Ergebnissen darf
+            // gelerntes Wissen nur gewinnen, wenn es
+            // deutlich stärker ist.
+            if learned.score >=
+                knowledge.score + 12 {
+
+                return learned
+            }
+
+            return knowledge
+
+        case let (
+            knowledge?,
+            nil
+        ):
+
+            guard
+                knowledge.score >= 50
+            else {
+
+                return nil
+            }
+
+            return knowledge
+
+        case let (
+            nil,
+            learned?
+        ):
+
+            return learned
+
+        case (
+            nil,
+            nil
+        ):
 
             return nil
         }
-
-        return bestMatch
     }
-
     // MARK: - Debug Similarity
 
     func debugSimilarity(

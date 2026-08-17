@@ -1125,6 +1125,47 @@ struct InboxView: View {
                 archiveViewModel:
                     archiveViewModel,
 
+                suggestArchiveDestination: {
+                    recipientArea,
+                    sender,
+                    documentType,
+                    document in
+
+                    viewModel
+                        .suggestArchiveDestinationURL(
+                            recipientArea:
+                                recipientArea,
+                            sender:
+                                sender,
+                            documentType:
+                                documentType,
+                            for:
+                                document
+                        )
+                },
+                visualSimilarity: {
+                    company,
+                    document in
+
+                    viewModel
+                        .visualSimilarity(
+                            company:
+                                company,
+                            for:
+                                document
+                        )
+                },
+
+                visualConfirmationCount: {
+                    company in
+
+                    viewModel
+                        .visualConfirmationCount(
+                            company:
+                                company
+                        )
+                },
+
                 isWorking:
                     viewModel.isArchiving,
 
@@ -1208,6 +1249,8 @@ struct InboxView: View {
                     correctedAnalysis,
                 destinationURL:
                     destinationURL,
+                confirmVisualSender:
+                    values.confirmVisualSender,
                 for:
                     document
             )

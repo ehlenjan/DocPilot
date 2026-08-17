@@ -12,13 +12,19 @@ struct CompanyRecognitionResult {
         Int
 }
 
+// MARK: - Company Recognizer
+
 struct CompanyRecognizer {
 
     private let knowledgeBase:
         KnowledgeBase
 
+    private let learnedSignatureStore =
+        LearnedCompanySignatureStore()
+
     init(
-        knowledgeBase: KnowledgeBase
+        knowledgeBase:
+            KnowledgeBase
     ) {
 
         self.knowledgeBase =
@@ -28,11 +34,13 @@ struct CompanyRecognizer {
     // MARK: - Existing Interface
 
     func detect(
-        in text: String
+        in text:
+            String
     ) -> String? {
 
         detectResult(
-            in: text
+            in:
+                text
         )?
         .company
     }
@@ -40,7 +48,8 @@ struct CompanyRecognizer {
     // MARK: - Detailed Result
 
     func detectResult(
-        in text: String
+        in text:
+            String
     ) -> CompanyRecognitionResult? {
 
         let normalizedText =
@@ -61,7 +70,9 @@ struct CompanyRecognizer {
                     normalizedText
             )
 
-        let candidates =
+        // MARK: - KnowledgeBase Candidates
+
+        let knowledgeCandidates =
             knowledgeBase
                 .companies
                 .compactMap {
@@ -77,36 +88,136 @@ struct CompanyRecognizer {
                     )
                 }
 
-        guard let bestCandidate =
-            candidates.max(
+        let bestKnowledgeCandidate =
+            knowledgeCandidates.max(
                 by: {
 
                     $0.score <
                         $1.score
                 }
             )
-        else {
+
+        // MARK: - Learned Candidate
+
+        let learnedMatch =
+            learnedSignatureStore
+                .bestMatch(
+                    in:
+                        text
+                )
+
+        // MARK: - Compare
+
+        let knowledgeResult:
+            CompanyRecognitionResult?
+
+        if let bestKnowledgeCandidate,
+           bestKnowledgeCandidate.score >= 30 {
+
+            knowledgeResult =
+                CompanyRecognitionResult(
+                    company:
+                        bestKnowledgeCandidate.name,
+                    matchedText:
+                        bestKnowledgeCandidate.bestMatchedKeyword,
+                    score:
+                        bestKnowledgeCandidate.score
+                )
+
+        } else {
+
+            knowledgeResult =
+                nil
+        }
+
+        let learnedResult:
+            CompanyRecognitionResult?
+
+        if let learnedMatch,
+           learnedMatch.isReliable {
+
+            let matchedText =
+                learnedMatch
+                    .matchedSignals
+                    .first
+                ??
+                learnedMatch.company
+
+            learnedResult =
+                CompanyRecognitionResult(
+                    company:
+                        learnedMatch.company,
+                    matchedText:
+                        matchedText,
+                    score:
+                        learnedMatch.score
+                )
+
+        } else {
+
+            learnedResult =
+                nil
+        }
+
+        switch (
+            knowledgeResult,
+            learnedResult
+        ) {
+
+        case let (
+            knowledge?,
+            learned?
+        ):
+
+            // Wenn beide dieselbe Firma meinen,
+            // vertrauen wir der Zuordnung und nehmen
+            // die stärkere Punktzahl.
+            if sameCompany(
+                knowledge.company,
+                learned.company
+            ) {
+
+                if learned.score >
+                    knowledge.score {
+
+                    return learned
+                }
+
+                return knowledge
+            }
+
+            // Bei widersprüchlichen Firmen darf ein
+            // gelernter Treffer nur gewinnen, wenn
+            // er merklich stärker ist.
+            if learned.score >=
+                knowledge.score + 12 {
+
+                return learned
+            }
+
+            return knowledge
+
+        case let (
+            knowledge?,
+            nil
+        ):
+
+            return knowledge
+
+        case let (
+            nil,
+            learned?
+        ):
+
+            return learned
+
+        case (
+            nil,
+            nil
+        ):
 
             return nil
         }
-
-        // Sehr schwache Einzel-Treffer
-        // lieber nicht als Absender ausgeben.
-        guard
-            bestCandidate.score >= 30
-        else {
-
-            return nil
-        }
-
-        return CompanyRecognitionResult(
-            company:
-                bestCandidate.name,
-            matchedText:
-                bestCandidate.bestMatchedKeyword,
-            score:
-                bestCandidate.score
-        )
     }
 
     // MARK: - Candidate
@@ -123,12 +234,15 @@ struct CompanyRecognizer {
             String
     }
 
-    // MARK: - Evaluation
+    // MARK: - Knowledge Evaluation
 
     private func evaluate(
-        company: CompanyRule,
-        fullText: String,
-        headerText: String
+        company:
+            CompanyRule,
+        fullText:
+            String,
+        headerText:
+            String
     ) -> Candidate? {
 
         var score =
@@ -232,9 +346,8 @@ struct CompanyRecognizer {
                 bestKeywordScore =
                     keywordScore
 
-                // Wir geben bewusst das ursprüngliche
-                // Keyword aus der KnowledgeBase zurück,
-                // nicht die normalisierte Variante.
+                // Ursprüngliches Keyword zurückgeben,
+                // damit Atlas ggf. danach suchen kann.
                 bestMatchedKeyword =
                     keyword
             }
@@ -275,7 +388,8 @@ struct CompanyRecognizer {
     // MARK: - Header
 
     private func headerSection(
-        from text: String
+        from text:
+            String
     ) -> String {
 
         let maximumLength =
@@ -303,8 +417,10 @@ struct CompanyRecognizer {
     // MARK: - Occurrences
 
     private func occurrenceCount(
-        of keyword: String,
-        in text: String
+        of keyword:
+            String,
+        in text:
+            String
     ) -> Int {
 
         guard
@@ -345,10 +461,29 @@ struct CompanyRecognizer {
         return count
     }
 
+    // MARK: - Same Company
+
+    private func sameCompany(
+        _ first:
+            String,
+        _ second:
+            String
+    ) -> Bool {
+
+        normalize(
+            first
+        )
+        ==
+        normalize(
+            second
+        )
+    }
+
     // MARK: - Normalize
 
     private func normalize(
-        _ value: String
+        _ value:
+            String
     ) -> String {
 
         value

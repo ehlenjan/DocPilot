@@ -60,6 +60,16 @@
       ]
     },
     {
+      "name": "Meyva",
+      "keywords": [
+        "meyva",
+        "meyva handels-gmbh",
+        "meyva handels-gmbh & co. kg",
+        "meyva-row.de",
+        "info@meyva-row.de"
+      ]
+    },
+    {
       "name": "Apple",
       "keywords": [
         "apple",
@@ -198,6 +208,19 @@
         "deliveryNote"
       ],
       "companies": [],
+      "keywords": []
+    },
+    {
+      "name": "EHA Meyva Belege",
+      "area": "EHA KG",
+      "folder": "Finanzen/Belege",
+      "documentTypes": [
+        "invoice",
+        "creditNote"
+      ],
+      "companies": [
+        "Meyva"
+      ],
       "keywords": []
     },
     {

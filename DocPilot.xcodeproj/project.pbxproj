@@ -101,6 +101,7 @@
 		30BF28633031A76C005BEB93 /* LayoutFieldRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BF28623031A76C005BEB93 /* LayoutFieldRecognizer.swift */; };
 		30BF28653031AD4A005BEB93 /* FieldImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BF28643031AD4A005BEB93 /* FieldImageProcessor.swift */; };
 		30BF28673031AE6E005BEB93 /* LayoutDateRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BF28663031AE6E005BEB93 /* LayoutDateRecognizer.swift */; };
+		30BF2869303235F8005BEB93 /* LearnedCompanySignatureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BF2868303235F8005BEB93 /* LearnedCompanySignatureStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -199,6 +200,7 @@
 		30BF28623031A76C005BEB93 /* LayoutFieldRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFieldRecognizer.swift; sourceTree = "<group>"; };
 		30BF28643031AD4A005BEB93 /* FieldImageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldImageProcessor.swift; sourceTree = "<group>"; };
 		30BF28663031AE6E005BEB93 /* LayoutDateRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDateRecognizer.swift; sourceTree = "<group>"; };
+		30BF2868303235F8005BEB93 /* LearnedCompanySignatureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnedCompanySignatureStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -453,6 +455,7 @@
 				30A672F1302FBDC500078925 /* AtlasLearningRecord.swift */,
 				30A672F3302FBE3A00078925 /* AtlasLearningStore.swift */,
 				30BF285C303107F5005BEB93 /* AtlasLearningStatistics.swift */,
+				30BF2868303235F8005BEB93 /* LearnedCompanySignatureStore.swift */,
 			);
 			path = Learning;
 			sourceTree = "<group>";
@@ -669,6 +672,7 @@
 				303B7A45301F7F11001D99ED /* InboxHeaderView.swift in Sources */,
 				303B7A813020F680001D99ED /* LearningStore.swift in Sources */,
 				30ADDF45302A681B00F26FFB /* AtlasReviewView.swift in Sources */,
+				30BF2869303235F8005BEB93 /* LearnedCompanySignatureStore.swift in Sources */,
 				30ADDF433029F4F800F26FFB /* LearnedCompanyStore.swift in Sources */,
 				303B7A1F301F59E8001D99ED /* DocPilotApp.swift in Sources */,
 				303B7A30301F6BD5001D99ED /* DocumentRecord.swift in Sources */,

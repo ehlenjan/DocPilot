@@ -76,6 +76,24 @@ struct DocumentClassifier {
 
                     !$0.isEmpty
                 }
+        // MARK: - Explicit Document Heading
+
+        // Eine eindeutige Dokumentbezeichnung hat Vorrang
+        // vor dem späteren Keyword-Scoring.
+        //
+        // Das ist besonders wichtig bei OCR-Fehlern wie:
+        // "Rech n u ng" -> "Rechnung"
+        //
+        // Begriffe wie "Lieferdatum" dürfen eine solche
+        // eindeutige Überschrift nicht überstimmen.
+        if let explicitHeading =
+            detectExplicitDocumentHeading(
+                in:
+                    normalizedLines
+            ) {
+
+            return explicitHeading
+        }
 
         // Die ersten Zeilen entsprechen bei
         // PDF-Textextraktion meistens ungefähr
@@ -159,7 +177,146 @@ struct DocumentClassifier {
                 strongestKeyword
         )
     }
+    // MARK: - Explicit Document Heading Detection
 
+    private func detectExplicitDocumentHeading(
+        in lines: [String]
+    ) -> DocumentClassificationResult? {
+
+        // Nur eindeutige Dokumentbezeichnungen.
+        //
+        // Hier bewusst KEINE Begriffe wie
+        // "Lieferdatum", "Belegnummer" usw.
+        let explicitHeadings:
+            [(keyword: String, type: DocumentType)] = [
+
+                (
+                    "rechnung",
+                    .invoice
+                ),
+
+                (
+                    "gutschrift",
+                    .creditNote
+                ),
+
+                (
+                    "lieferschein",
+                    .deliveryNote
+                ),
+
+                (
+                    "schlachtprotokoll",
+                    .slaughterReport
+                ),
+
+                (
+                    "wiegeprotokoll",
+                    .weighingReport
+                ),
+
+                (
+                    "vertrag",
+                    .contract
+                ),
+
+                (
+                    "einladung",
+                    .invitation
+                ),
+
+                (
+                    "untersuchungsbericht",
+                    .examination
+                )
+            ]
+
+        // Dokumentüberschriften befinden sich normalerweise
+        // relativ weit oben. Wir begrenzen die Suche deshalb,
+        // damit beispielsweise eine beiläufige Erwähnung von
+        // "Rechnung" am Seitenende keinen Vorrang bekommt.
+        let candidateLines =
+            Array(
+                lines.prefix(
+                    30
+                )
+            )
+
+        for line in candidateLines {
+
+            // Sehr lange Textzeilen sind keine Überschriften.
+            guard
+                line.count <= 80
+            else {
+
+                continue
+            }
+
+            let compactLine =
+                compactText(
+                    line
+                )
+
+            for heading in explicitHeadings {
+
+                let compactKeyword =
+                    compactText(
+                        heading.keyword
+                    )
+
+                // MARK: Exact Heading
+
+                if compactLine ==
+                    compactKeyword {
+
+                    return DocumentClassificationResult(
+                        documentType:
+                            heading.type,
+                        matchedText:
+                            heading.keyword
+                    )
+                }
+
+                // MARK: Heading with Number / Addition
+
+                // Beispiele:
+                //
+                // Rechnung 4711
+                // Rechnung: 4711
+                // Lieferschein Nr. 123
+                //
+                // Auch OCR-zerhackte Schreibweisen wie
+                // "Rech n u ng" funktionieren durch
+                // compactText().
+                if compactLine.hasPrefix(
+                    compactKeyword
+                ) {
+
+                    let remainingText =
+                        String(
+                            compactLine.dropFirst(
+                                compactKeyword.count
+                            )
+                        )
+
+                    // Nur kurze Ergänzungen zulassen.
+                    // Dadurch vermeiden wir Treffer in
+                    // normalen Sätzen.
+                    if remainingText.count <= 30 {
+
+                        return DocumentClassificationResult(
+                            documentType:
+                                heading.type,
+                            matchedText:
+                                heading.keyword
+                        )
+                    }
+                }
+            }
+        }
+
+        return nil
+    }
     // MARK: - Rule Scoring
 
     private func score(
@@ -198,10 +355,29 @@ struct DocumentClassifier {
                 continue
             }
 
-            guard
+            let normalMatch =
                 normalizedText.contains(
                     normalizedKeyword
                 )
+
+            let ocrTolerantMatch =
+                isStrongDocumentKeyword(
+                    normalizedKeyword
+                )
+                &&
+                compactText(
+                    normalizedText
+                )
+                .contains(
+                    compactText(
+                        normalizedKeyword
+                    )
+                )
+
+            guard
+                normalMatch
+                ||
+                ocrTolerantMatch
             else {
 
                 continue
@@ -227,6 +403,20 @@ struct DocumentClassifier {
                     for:
                         normalizedKeyword
                 )
+            // MARK: - OCR Tolerant Bonus
+
+            // Wenn eine starke Dokumentbezeichnung nur
+            // wegen OCR-Leerzeichen erkannt wurde,
+            // ist sie trotzdem ein sehr starkes Signal.
+            //
+            // Beispiel:
+            // "Rech n u ng" -> "Rechnung"
+            if !normalMatch,
+               ocrTolerantMatch {
+
+                keywordScore +=
+                    8.0
+            }
 
             // MARK: Header Bonus
 
@@ -261,7 +451,7 @@ struct DocumentClassifier {
             ) {
 
                 keywordScore +=
-                    3.0
+                    10.0
             }
 
             // MARK: Identifier Bonus
@@ -502,7 +692,47 @@ struct DocumentClassifier {
 
         return count
     }
+    // MARK: - OCR Tolerant Document Keywords
 
+    private func isStrongDocumentKeyword(
+        _ keyword: String
+    ) -> Bool {
+
+        let strongKeywords:
+            Set<String> = [
+                "rechnung",
+                "gutschrift",
+                "lieferschein",
+                "vertrag",
+                "einladung",
+                "untersuchung",
+                "untersuchungsbericht",
+                "schlachtprotokoll",
+                "wiegeprotokoll"
+            ]
+
+        return strongKeywords.contains(
+            keyword
+        )
+    }
+
+    // MARK: - Compact OCR Text
+
+    private func compactText(
+        _ value: String
+    ) -> String {
+
+        value
+            .replacingOccurrences(
+                of:
+                    "\\s+",
+                with:
+                    "",
+                options:
+                    .regularExpression
+            )
+    }
+    
     // MARK: - Normalize
 
     private func normalize(

@@ -71,9 +71,12 @@ struct FolderSuggestionEngine {
 
         let learningMatch =
             learningMatcher.bestMatch(
-                for: analysis,
+                for:
+                    analysis,
                 entries:
-                    learningEntries
+                    learningEntries,
+                documentText:
+                    text
             )
 
         let suggestion =

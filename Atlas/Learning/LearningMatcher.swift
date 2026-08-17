@@ -2,21 +2,57 @@ import Foundation
 
 struct LearningMatch {
 
-    let entry: LearningEntry
-    let score: Int
+    let entry:
+        LearningEntry
 
-    let companyMatched: Bool
-    let documentTypeMatched: Bool
-    let keywordMatches: Int
-    let usageCount: Int
+    let score:
+        Int
+
+    let companyMatched:
+        Bool
+
+    let documentTypeMatched:
+        Bool
+
+    let keywordMatches:
+        Int
+
+    let documentSignalMatches:
+        Int
+
+    let usageCount:
+        Int
+
+    /// Ein gelernter Treffer darf erst dann
+    /// aktiv in die Dokumentanalyse eingreifen,
+    /// wenn er mehrfach bestätigt wurde und
+    /// genügend Dokumentmerkmale übereinstimmen.
+    var canApplyToAnalysis:
+        Bool {
+
+        usageCount >= 3
+        &&
+        documentSignalMatches >= 3
+        &&
+        score >= 45
+    }
 }
+
+// MARK: - Learning Matcher
 
 struct LearningMatcher {
 
     func bestMatch(
         for analysis: AtlasAnalysis,
-        entries: [LearningEntry]
+        entries: [LearningEntry],
+        documentText: String? = nil
     ) -> LearningMatch? {
+
+        let currentDocumentSignals =
+            extractDocumentSignals(
+                from:
+                    documentText
+            )
 
         var bestMatch:
             LearningMatch?
@@ -33,7 +69,7 @@ struct LearningMatcher {
 
             let documentTypeMatched =
                 entry.documentType ==
-                analysis.documentType
+                    analysis.documentType
 
             let keywordMatches =
                 matchingKeywordCount(
@@ -43,50 +79,77 @@ struct LearningMatcher {
                         entry.keywords
                 )
 
-            // MARK: - Mindestähnlichkeit
+            let documentSignalMatches =
+                matchingDocumentSignalCount(
+                    currentSignals:
+                        currentDocumentSignals,
+                    learnedSignals:
+                        entry.documentSignals
+                )
 
-            // Ein gleicher Dokumenttyp allein
-            // ist kein ausreichendes Lernsignal.
+            // MARK: Mindestähnlichkeit
+
+            // Gleiche Dokumentart allein reicht nicht.
             //
-            // Sonst würde jede Rechnung mit jeder
-            // anderen Rechnung konkurrieren.
+            // Es muss entweder
+            // - dieselbe Firma,
+            // - mindestens ein Keyword
+            // - oder ein deutlicher Dokument-Signal-Treffer
+            // vorhanden sein.
             guard
-                companyMatched ||
+                companyMatched
+                ||
                 keywordMatches > 0
+                ||
+                documentSignalMatches >= 2
             else {
+
                 continue
             }
 
-            var score = 0
+            var score =
+                0
 
-            // Firma ist unser stärkstes Merkmal.
+            // Firma bleibt stark.
             if companyMatched {
-                score += 60
+
+                score +=
+                    60
             }
 
-            // Dokumenttyp verstärkt einen bereits
-            // plausiblen Treffer.
+            // Dokumenttyp verstärkt einen
+            // bereits plausiblen Treffer.
             if documentTypeMatched {
-                score += 20
+
+                score +=
+                    20
             }
 
-            // Gemeinsame Schlüsselwörter.
+            // Bekannte Atlas-Schlüsselwörter.
             score +=
                 min(
                     keywordMatches * 8,
                     32
                 )
 
-            // Wiederholt bestätigte Zuordnungen
-            // werden mit der Zeit stärker.
+            // Gelernte Textmerkmale.
+            score +=
+                min(
+                    documentSignalMatches * 7,
+                    49
+                )
+
+            // Mehrfach bestätigtes Lernen.
             score +=
                 experienceBonus(
                     for:
                         entry.usageCount
                 )
 
-            // Sehr schwache Treffer ignorieren.
-            guard score >= 35 else {
+            guard
+                score >= 35
+            else {
+
                 continue
             }
 
@@ -102,13 +165,16 @@ struct LearningMatcher {
                         documentTypeMatched,
                     keywordMatches:
                         keywordMatches,
+                    documentSignalMatches:
+                        documentSignalMatches,
                     usageCount:
                         entry.usageCount
                 )
 
-            if bestMatch == nil ||
+            if bestMatch == nil
+                ||
                 match.score >
-                bestMatch!.score {
+                    bestMatch!.score {
 
                 bestMatch =
                     match
@@ -129,16 +195,17 @@ struct LearningMatcher {
             let analysisSender,
             let learnedCompany
         else {
+
             return false
         }
 
-        return analysisSender.compare(
-            learnedCompany,
-            options: [
-                .caseInsensitive,
-                .diacriticInsensitive
-            ]
-        ) == .orderedSame
+        return normalize(
+            analysisSender
+        )
+        ==
+        normalize(
+            learnedCompany
+        )
     }
 
     // MARK: - Keywords
@@ -148,27 +215,231 @@ struct LearningMatcher {
         learnedKeywords: [String]
     ) -> Int {
 
-        let normalizedLearnedKeywords =
+        let learned =
             Set(
                 learnedKeywords.map {
-                    normalize($0)
+                    normalize(
+                        $0
+                    )
                 }
             )
 
         return analysisKeywords.reduce(
-            into: 0
-        ) { count, keyword in
+            into:
+                0
+        ) {
+            count,
+            keyword in
 
-            if normalizedLearnedKeywords
-                .contains(
-                    normalize(
-                        keyword
-                    )
-                ) {
+            if learned.contains(
+                normalize(
+                    keyword
+                )
+            ) {
 
-                count += 1
+                count +=
+                    1
             }
         }
+    }
+
+    // MARK: - Document Signals
+
+    private func matchingDocumentSignalCount(
+        currentSignals: [String],
+        learnedSignals: [String]
+    ) -> Int {
+
+        guard
+            !currentSignals.isEmpty,
+            !learnedSignals.isEmpty
+        else {
+
+            return 0
+        }
+
+        let learned =
+            Set(
+                learnedSignals.map {
+                    normalize(
+                        $0
+                    )
+                }
+            )
+
+        var matches =
+            0
+
+        for signal in currentSignals {
+
+            if learned.contains(
+                normalize(
+                    signal
+                )
+            ) {
+
+                matches +=
+                    1
+            }
+        }
+
+        return matches
+    }
+
+    // MARK: - Extract Signals
+
+    private func extractDocumentSignals(
+        from text: String?
+    ) -> [String] {
+
+        guard
+            let text
+        else {
+
+            return []
+        }
+
+        let normalizedText =
+            normalize(
+                text
+            )
+
+        guard
+            !normalizedText.isEmpty
+        else {
+
+            return []
+        }
+
+        let rawTokens =
+            normalizedText
+                .components(
+                    separatedBy:
+                        CharacterSet
+                            .alphanumerics
+                            .inverted
+                )
+                .filter {
+                    !$0.isEmpty
+                }
+
+        let ignoredWords:
+            Set<String> = [
+
+                "der",
+                "die",
+                "das",
+                "den",
+                "dem",
+                "des",
+
+                "ein",
+                "eine",
+                "einer",
+                "einem",
+                "einen",
+
+                "und",
+                "oder",
+                "von",
+                "vom",
+                "für",
+                "mit",
+                "auf",
+                "aus",
+                "bei",
+                "zur",
+                "zum",
+                "im",
+                "in",
+
+                "ist",
+                "sind",
+                "wird",
+                "werden",
+
+                "seite",
+                "datum",
+                "name",
+                "anschrift",
+
+                "ja",
+                "nein",
+
+                "nr",
+                "nummer"
+            ]
+
+        var counts:
+            [String: Int] = [:]
+
+        for token in rawTokens {
+
+            guard
+                token.count >= 4
+            else {
+
+                continue
+            }
+
+            guard
+                !ignoredWords.contains(
+                    token
+                )
+            else {
+
+                continue
+            }
+
+            if token.allSatisfy(
+                {
+                    $0.isNumber
+                }
+            ) {
+
+                continue
+            }
+
+            counts[
+                token,
+                default:
+                    0
+            ] +=
+                1
+        }
+
+        let ranked =
+            counts.sorted {
+                first,
+                second in
+
+                if first.value !=
+                    second.value {
+
+                    return first.value >
+                        second.value
+                }
+
+                if first.key.count !=
+                    second.key.count {
+
+                    return first.key.count >
+                        second.key.count
+                }
+
+                return first.key <
+                    second.key
+            }
+
+        return Array(
+            ranked
+                .prefix(
+                    24
+                )
+                .map {
+                    $0.key
+                }
+        )
     }
 
     // MARK: - Experience
@@ -192,9 +463,12 @@ struct LearningMatcher {
             return 10
 
         case 5..<10:
+            return 7
+
+        case 3..<5:
             return 5
 
-        case 2..<5:
+        case 2:
             return 3
 
         default:
@@ -224,5 +498,6 @@ struct LearningMatcher {
                             "de_DE"
                     )
             )
+            .lowercased()
     }
 }

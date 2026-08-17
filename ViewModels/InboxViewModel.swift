@@ -48,11 +48,13 @@ final class InboxViewModel {
     private let learnedCompanyStore =
         LearnedCompanyStore()
 
+    private let learnedCompanySignatureStore =
+        LearnedCompanySignatureStore()
+
     // MARK: - Atlas Learning
 
     private let atlasLearningStore =
         AtlasLearningStore()
-
     // MARK: - Init
 
     init() {
@@ -563,11 +565,22 @@ final class InboxViewModel {
                         text
                 )
 
+            // Bestätigtes Atlas-Wissen darf die
+            // Analyse ergänzen bzw. bei ausreichend
+            // sicherem Wiedererkennen korrigieren.
+            let learnedAnalysis =
+                applyLearnedAnalysis(
+                    to:
+                        finalAnalysis,
+                    text:
+                        text
+                )
+
             let newFolderSuggestion =
                 folderSuggestionEngine
                     .suggestFolder(
                         for:
-                            finalAnalysis,
+                            learnedAnalysis,
                         text:
                             text
                     )
@@ -579,7 +592,7 @@ final class InboxViewModel {
                 initialAnalysesByURL[
                     document.sourceURL
                 ] =
-                    finalAnalysis
+                    learnedAnalysis
             }
 
             if initialFolderSuggestionsByURL[
@@ -595,7 +608,7 @@ final class InboxViewModel {
             analysesByURL[
                 document.sourceURL
             ] =
-                finalAnalysis
+                learnedAnalysis
 
             folderSuggestionsByURL[
                 document.sourceURL
@@ -607,7 +620,7 @@ final class InboxViewModel {
             if analysis == nil {
 
                 analysis =
-                    finalAnalysis
+                    learnedAnalysis
 
                 folderSuggestion =
                     newFolderSuggestion
@@ -725,17 +738,28 @@ final class InboxViewModel {
                         text
                 )
 
+            // Bestätigtes Atlas-Wissen darf die
+            // Analyse ergänzen bzw. bei ausreichend
+            // sicherem Wiedererkennen korrigieren.
+            let learnedAnalysis =
+                applyLearnedAnalysis(
+                    to:
+                        finalAnalysis,
+                    text:
+                        text
+                )
+
             let newFolderSuggestion =
                 folderSuggestionEngine
                     .suggestFolder(
                         for:
-                            finalAnalysis,
+                            learnedAnalysis,
                         text:
                             text
                     )
 
             analysis =
-                finalAnalysis
+                learnedAnalysis
 
             folderSuggestion =
                 newFolderSuggestion
@@ -747,7 +771,7 @@ final class InboxViewModel {
                 initialAnalysesByURL[
                     document.sourceURL
                 ] =
-                    finalAnalysis
+                    learnedAnalysis
             }
 
             if initialFolderSuggestionsByURL[
@@ -763,7 +787,7 @@ final class InboxViewModel {
             analysesByURL[
                 document.sourceURL
             ] =
-                finalAnalysis
+                learnedAnalysis
 
             folderSuggestionsByURL[
                 document.sourceURL
@@ -780,6 +804,220 @@ final class InboxViewModel {
             textExtractionMessage =
                 error.localizedDescription
         }
+    }
+
+    // MARK: - Learned Analysis
+
+    private func applyLearnedAnalysis(
+        to baseAnalysis: AtlasAnalysis,
+        text: String
+    ) -> AtlasAnalysis {
+
+        let learningManager =
+            LearningManager()
+
+        learningManager.reload()
+
+        learningManager
+            .removeInvalidEntries(
+                validFolders:
+                    knowledgeBase
+                        .archiveFolders
+            )
+
+        var entries =
+            learningManager.entries
+
+        // Wenn der Empfänger bereits erkannt wurde,
+        // vergleichen wir nur mit Erfahrungen aus
+        // demselben Archivbereich.
+        if let recipientArea =
+            baseAnalysis.recipientArea {
+
+            entries =
+                entries.filter {
+
+                    $0.archiveArea ==
+                        recipientArea
+                }
+        }
+
+        let matcher =
+            LearningMatcher()
+
+        guard
+            let match =
+                matcher.bestMatch(
+                    for:
+                        baseAnalysis,
+                    entries:
+                        entries,
+                    documentText:
+                        text
+                )
+        else {
+
+            return baseAnalysis
+        }
+
+        // Erst mehrfach bestätigte und zugleich
+        // textlich ähnliche Dokumente dürfen
+        // die automatische Analyse verändern.
+        guard
+            match.canApplyToAnalysis
+        else {
+
+            return baseAnalysis
+        }
+
+        let learnedEntry =
+            match.entry
+
+        var reasons =
+            baseAnalysis.reasons
+
+        reasons.append(
+            "Atlas hat dieses Dokument anhand bestätigter Erfahrungen wiedererkannt (\(match.usageCount)× bestätigt, \(match.documentSignalMatches) Textmerkmale)"
+        )
+
+        // MARK: Sender
+
+        let learnedSender =
+            learnedEntry.company?
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        let finalSender:
+            String?
+
+        let finalSenderDetectedText:
+            String?
+
+        if let learnedSender,
+           !learnedSender.isEmpty {
+
+            finalSender =
+                learnedSender
+
+            // Dieser Wert stammt aus dem Lernen und
+            // nicht aus einer konkreten Textstelle.
+            finalSenderDetectedText =
+                nil
+
+            if !sameCompany(
+                learnedSender,
+                baseAnalysis.sender ?? ""
+            ) {
+
+                reasons.append(
+                    "Absender \(learnedSender) wurde aus bestätigtem Lernen übernommen"
+                )
+            }
+
+        } else {
+
+            finalSender =
+                baseAnalysis.sender
+
+            finalSenderDetectedText =
+                baseAnalysis.senderDetectedText
+        }
+
+        // MARK: Document Type
+
+        let finalDocumentType:
+            DocumentType
+
+        let finalDocumentTypeDetectedText:
+            String?
+
+        // Eine bereits direkt erkannte Dokumentart
+        // hat Vorrang vor gelerntem Erfahrungswissen.
+        //
+        // Lernen ergänzt die Dokumentart nur,
+        // wenn die normale Analyse nichts erkannt hat.
+        if baseAnalysis.documentType !=
+            .unknown {
+
+            finalDocumentType =
+                baseAnalysis.documentType
+
+            finalDocumentTypeDetectedText =
+                baseAnalysis.documentTypeDetectedText
+
+        } else {
+
+            finalDocumentType =
+                learnedEntry.documentType
+
+            finalDocumentTypeDetectedText =
+                nil
+
+            if learnedEntry.documentType !=
+                .unknown {
+
+                reasons.append(
+                    "Dokumentenart \(learnedEntry.documentType.rawValue) wurde aus bestätigtem Lernen ergänzt"
+                )
+            }
+        }
+
+        // MARK: Recipient
+
+        // Einen schon erkannten Empfänger lassen wir
+        // unangetastet. Nur bei fehlender Erkennung
+        // ergänzt das bestätigte Archivwissen den Bereich.
+        let finalRecipientArea =
+            baseAnalysis.recipientArea
+            ??
+            learnedEntry.archiveArea
+
+        if baseAnalysis.recipientArea == nil {
+
+            reasons.append(
+                "Empfängerbereich \(learnedEntry.archiveArea.rawValue) wurde aus bestätigtem Lernen ergänzt"
+            )
+        }
+
+        return AtlasAnalysis(
+            documentType:
+                finalDocumentType,
+
+            documentTypeDetectedText:
+                finalDocumentTypeDetectedText,
+
+            detectedDate:
+                baseAnalysis.detectedDate,
+
+            detectedDateText:
+                baseAnalysis.detectedDateText,
+
+            sender:
+                finalSender,
+
+            senderDetectedText:
+                finalSenderDetectedText,
+
+            recipientArea:
+                finalRecipientArea,
+
+            recipientDetectedText:
+                baseAnalysis.recipientDetectedText,
+
+            keywords:
+                baseAnalysis.keywords,
+
+            confidence:
+                max(
+                    baseAnalysis.confidence,
+                    0.85
+                ),
+
+            reasons:
+                reasons
+        )
     }
 
     // MARK: - Layout Date Analysis
@@ -1246,7 +1484,117 @@ final class InboxViewModel {
 
         return updatedAnalysis
     }
+    // MARK: - Visual Sender Comparison
 
+    /// Vergleicht die visuelle Signatur des Dokuments
+    /// gezielt mit bereits gelernten Signaturen
+    /// einer bestimmten Firma.
+    ///
+    /// Dadurch kann die Korrekturansicht anzeigen:
+    /// "97,2 % Ähnlichkeit mit VzF".
+    func visualSimilarity(
+        company: String,
+        for document: DocumentRecord
+    ) -> Double? {
+
+        let cleanedCompany =
+            company.trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+
+        guard
+            !cleanedCompany.isEmpty,
+            let currentSignature =
+                visualSignaturesByURL[
+                    document.sourceURL
+                ]
+        else {
+
+            return nil
+        }
+
+        visualSenderLearningManager
+            .reload()
+
+        let entries =
+            visualSenderLearningManager
+                .entries
+                .filter {
+
+                    sameCompany(
+                        $0.company,
+                        cleanedCompany
+                    )
+                }
+
+        var bestSimilarity:
+            Double?
+
+        for entry in entries {
+
+            guard
+                let similarity =
+                    currentSignature.similarity(
+                        to:
+                            entry.signature
+                    )
+            else {
+
+                continue
+            }
+
+            if bestSimilarity == nil
+                ||
+                similarity >
+                    bestSimilarity! {
+
+                bestSimilarity =
+                    similarity
+            }
+        }
+
+        return bestSimilarity
+    }
+
+
+    /// Liefert die bisher höchste Bestätigungszahl
+    /// für die ausgewählte Firma.
+    func visualConfirmationCount(
+        company: String
+    ) -> Int {
+
+        let cleanedCompany =
+            company.trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+
+        guard
+            !cleanedCompany.isEmpty
+        else {
+
+            return 0
+        }
+
+        visualSenderLearningManager
+            .reload()
+
+        return visualSenderLearningManager
+            .entries
+            .filter {
+
+                sameCompany(
+                    $0.company,
+                    cleanedCompany
+                )
+            }
+            .map(
+                \.confirmationCount
+            )
+            .max()
+            ?? 0
+    }
     // MARK: - Confirm Visual Sender
 
     /// Benutzer bestätigt den Absender für das
@@ -1767,12 +2115,19 @@ final class InboxViewModel {
                 ]
             )
 
+        let storedText =
+            extractedTextsByURL[
+                document.sourceURL
+            ]
+
         LearningEngine()
             .remember(
                 analysis:
                     documentAnalysis,
                 destination:
-                    learnedSuggestion
+                    learnedSuggestion,
+                documentText:
+                    storedText
             )
     }
 
@@ -1869,6 +2224,7 @@ final class InboxViewModel {
     func applyCorrection(
         analysis correctedAnalysis: AtlasAnalysis,
         destinationURL: URL,
+        confirmVisualSender: Bool,
         for document: DocumentRecord
     ) -> Bool {
 
@@ -1933,30 +2289,66 @@ final class InboxViewModel {
         manualArchiveDestinationURL =
             destinationURL
 
-        // Neue Absender dauerhaft in die
-        // Firmenauswahl übernehmen.
+        // Neue bzw. bestätigte Absender dauerhaft lernen.
         if let sender =
             correctedAnalysis.sender {
 
-            learnedCompanyStore.add(
-                sender
-            )
+            let cleanedSender =
+                sender.trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
 
-            // Wenn für dieses Dokument bereits eine
-            // visuelle Signatur existiert, lernt Atlas
-            // gleichzeitig den bestätigten Absender.
-            if let signature =
-                visualSignaturesByURL[
-                    document.sourceURL
-                ] {
+            if !cleanedSender.isEmpty {
 
-                visualSenderLearningManager
-                    .confirm(
-                        company:
-                            sender,
-                        signature:
-                            signature
-                    )
+                // Firma in der allgemeinen Firmenliste merken.
+                learnedCompanyStore.add(
+                    cleanedSender
+                )
+
+                // MARK: - Text-/OCR-Firmenlernen
+
+                // Den bereits aus PDF bzw. OCR gewonnenen
+                // Dokumenttext verwenden.
+                if let documentText =
+                    extractedTextsByURL[
+                        document.sourceURL
+                    ],
+                   !documentText.isEmpty {
+
+                    learnedCompanySignatureStore
+                        .learn(
+                            company:
+                                cleanedSender,
+                            documentText:
+                                documentText
+                        )
+                }
+
+                // MARK: - Visuelles Firmenlernen
+
+                // Die visuelle Signatur wird nur dann
+                // ausdrücklich gelernt, wenn der Benutzer
+                // im Korrekturfenster bestätigt hat:
+                // "Grafik gehört definitiv zu ...".
+                //
+                // Eine normale Absenderkorrektur lernt
+                // weiterhin Text/OCR, aber nicht automatisch
+                // das grafische Erscheinungsbild.
+                if confirmVisualSender,
+                   let signature =
+                    visualSignaturesByURL[
+                        document.sourceURL
+                    ] {
+
+                    visualSenderLearningManager
+                        .confirm(
+                            company:
+                                cleanedSender,
+                            signature:
+                                signature
+                        )
+                }
             }
         }
 
@@ -2033,7 +2425,7 @@ final class InboxViewModel {
         documentType: DocumentType,
         for document: DocumentRecord
     ) -> FolderSuggestion? {
-
+        
         let cleanedSender =
             sender.trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -2062,6 +2454,82 @@ final class InboxViewModel {
                 for: temporaryAnalysis,
                 text: text
             )
+    }
+
+
+    // MARK: - Archive Destination URL
+
+    func suggestArchiveDestinationURL(
+        recipientArea: ArchiveArea,
+        sender: String,
+        documentType: DocumentType,
+        for document: DocumentRecord
+    ) -> URL? {
+
+        guard
+            let suggestion =
+                suggestArchiveDestination(
+                    recipientArea:
+                        recipientArea,
+                    sender:
+                        sender,
+                    documentType:
+                        documentType,
+                    for:
+                        document
+                )
+        else {
+
+            return nil
+        }
+
+        guard
+            let workspace =
+                archiveWorkspaceStore
+                    .workspace(
+                        matching:
+                            suggestion.area
+                    )
+        else {
+
+            return nil
+        }
+
+        guard
+            let archiveRootURL =
+                archiveWorkspaceStore
+                    .folderURL(
+                        for:
+                            workspace
+                    )
+        else {
+
+            return nil
+        }
+
+        do {
+
+            return try archiveDestinationResolver
+                .resolve(
+                    rootURL:
+                        archiveRootURL,
+                    relativePath:
+                        suggestion.folder
+                )
+
+        } catch {
+
+            print(
+                """
+                ⚠️ Atlas konnte den vorgeschlagenen Speicherort nicht auflösen:
+                \(suggestion.area.rawValue) → \(suggestion.folder)
+
+                \(error.localizedDescription)
+                """
+            )
+
+            return nil
+        }
     }
     
     // MARK: - Rename
@@ -3012,18 +3480,38 @@ final class InboxViewModel {
         if let date =
             analysis.detectedDate {
 
-            let formatter =
-                DateFormatter()
+            let calendar =
+                Calendar(
+                    identifier:
+                        .gregorian
+                )
 
-            formatter.dateFormat =
-                "yyyy-MM-dd"
-
-            parts.append(
-                formatter.string(
+            let year =
+                calendar.component(
+                    .year,
                     from:
                         date
                 )
-            )
+
+            // Letzte Sicherheitsstufe:
+            // Nur plausible Jahre dürfen
+            // in den Dateinamen übernommen werden.
+            if year >= 1900,
+               year <= 2099 {
+
+                let formatter =
+                    DateFormatter()
+
+                formatter.dateFormat =
+                    "yyyy-MM-dd"
+
+                parts.append(
+                    formatter.string(
+                        from:
+                            date
+                    )
+                )
+            }
         }
 
         if analysis.documentType !=

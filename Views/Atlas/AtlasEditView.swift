@@ -2,96 +2,211 @@ import SwiftUI
 
 struct AtlasEditValues {
 
-    var recipientArea: ArchiveArea
-    var sender: String
-    var documentType: DocumentType
-    var detectedDate: Date?
-    var destinationURL: URL?
-    var filename: String
+    var recipientArea:
+        ArchiveArea
+
+    var sender:
+        String
+
+    var documentType:
+        DocumentType
+
+    var detectedDate:
+        Date?
+
+    var destinationURL:
+        URL?
+
+    var filename:
+        String
+
+    /// Wenn true, bestätigt der Benutzer ausdrücklich,
+    /// dass die visuelle Signatur / Grafik dieses
+    /// Dokuments zu diesem Absender gehört.
+    var confirmVisualSender:
+        Bool
 }
 
-struct AtlasEditView: View {
+// MARK: - Atlas Edit View
 
-    let document: DocumentRecord
+struct AtlasEditView:
+    View {
 
-    let availableCompanies: [String]
+    let document:
+        DocumentRecord
 
-    let initialRecipientArea: ArchiveArea
-    let initialSender: String
-    let initialDocumentType: DocumentType
-    let initialDate: Date?
-    let initialFilename: String
+    let availableCompanies:
+        [String]
 
-    @Binding var destinationURL: URL?
+    let initialRecipientArea:
+        ArchiveArea
 
-    let archiveViewModel: ArchiveViewModel
+    let initialSender:
+        String
 
-    let isWorking: Bool
+    let initialDocumentType:
+        DocumentType
 
-    let onCancel: () -> Void
-    let onSaveAndArchive: (AtlasEditValues) -> Void
+    let initialDate:
+        Date?
+
+    let initialFilename:
+        String
+
+    @Binding
+    var destinationURL:
+        URL?
+
+    let archiveViewModel:
+        ArchiveViewModel
+
+    /// Zentraler Atlas-Vorschlag für den Speicherort.
+    ///
+    /// Dadurch verwendet auch das Korrekturfenster
+    /// dieselbe Logik wie der normale Atlas-Workflow.
+    let suggestArchiveDestination:
+        (
+            ArchiveArea,
+            String,
+            DocumentType,
+            DocumentRecord
+        ) -> URL?
+
+    let visualSimilarity:
+        (
+            String,
+            DocumentRecord
+        ) -> Double?
+
+    let visualConfirmationCount:
+        (
+            String
+        ) -> Int
+
+    let isWorking:
+        Bool
+
+    let onCancel:
+        () -> Void
+
+    let onSaveAndArchive:
+        (AtlasEditValues) -> Void
 
     // MARK: - Recipient
 
-    @State private var recipientArea:
+    @State
+    private var recipientArea:
         ArchiveArea
 
     // MARK: - Sender
 
-    @State private var selectedSender =
+    @State
+    private var selectedSender =
         ""
 
-    @State private var customSender =
+    @State
+    private var customSender =
         ""
+
+    @State
+    private var confirmVisualSender =
+        false
+
+    // Die visuelle Ähnlichkeit wird bewusst gecacht.
+    // Sie darf NICHT bei jedem SwiftUI-Neuzeichnen
+    // erneut berechnet werden, weil der Vergleich der
+    // Vision-Feature-Vektoren relativ aufwendig ist.
+    @State
+    private var visualSimilarityValue:
+        Double?
+
+    @State
+    private var visualConfirmationCountValue =
+        0
 
     // MARK: - Document
 
-    @State private var documentType:
+    @State
+    private var documentType:
         DocumentType
 
-    @State private var detectedDate =
+    @State
+    private var detectedDate =
         Date()
 
-    @State private var hasDate =
+    @State
+    private var hasDate =
         false
 
     // MARK: - Filename
 
-    @State private var filename =
+    @State
+    private var filename =
         ""
 
     /// Sobald der Benutzer den Dateinamen
     /// selbst verändert, greift Atlas nicht
     /// mehr automatisch ein.
-    @State private var filenameWasEditedManually =
+    @State
+    private var filenameWasEditedManually =
         false
 
     // MARK: - Destination
 
-    @State private var isShowingDestinationPicker =
+    @State
+    private var isShowingDestinationPicker =
         false
 
     /// Sobald der Benutzer einen Speicherort
     /// selbst auswählt, überschreibt Atlas ihn
     /// nicht mehr automatisch.
-    @State private var destinationWasChosenManually =
+    @State
+    private var destinationWasChosenManually =
         false
 
     // MARK: - Init
 
     init(
-        document: DocumentRecord,
-        availableCompanies: [String],
-        initialRecipientArea: ArchiveArea,
-        initialSender: String,
-        initialDocumentType: DocumentType,
-        initialDate: Date?,
-        destinationURL: Binding<URL?>,
-        initialFilename: String,
-        archiveViewModel: ArchiveViewModel,
-        isWorking: Bool,
-        onCancel: @escaping () -> Void,
-        onSaveAndArchive: @escaping (AtlasEditValues) -> Void
+        document:
+            DocumentRecord,
+        availableCompanies:
+            [String],
+        initialRecipientArea:
+            ArchiveArea,
+        initialSender:
+            String,
+        initialDocumentType:
+            DocumentType,
+        initialDate:
+            Date?,
+        destinationURL:
+            Binding<URL?>,
+        initialFilename:
+            String,
+        archiveViewModel:
+            ArchiveViewModel,
+        suggestArchiveDestination:
+            @escaping (
+                ArchiveArea,
+                String,
+                DocumentType,
+                DocumentRecord
+            ) -> URL?,
+        visualSimilarity:
+            @escaping (
+                String,
+                DocumentRecord
+            ) -> Double?,
+        visualConfirmationCount:
+            @escaping (
+                String
+            ) -> Int,
+        isWorking:
+            Bool,
+        onCancel:
+            @escaping () -> Void,
+        onSaveAndArchive:
+            @escaping (AtlasEditValues) -> Void
     ) {
 
         self.document =
@@ -120,6 +235,15 @@ struct AtlasEditView: View {
 
         self.archiveViewModel =
             archiveViewModel
+
+        self.suggestArchiveDestination =
+            suggestArchiveDestination
+
+        self.visualSimilarity =
+            visualSimilarity
+
+        self.visualConfirmationCount =
+            visualConfirmationCount
 
         self.isWorking =
             isWorking
@@ -164,9 +288,13 @@ struct AtlasEditView: View {
 
     // MARK: - Body
 
-    var body: some View {
+    var body:
+        some View {
 
-        VStack(spacing: 0) {
+        VStack(
+            spacing:
+                0
+        ) {
 
             header
 
@@ -174,7 +302,10 @@ struct AtlasEditView: View {
 
             ScrollView {
 
-                VStack(spacing: 14) {
+                VStack(
+                    spacing:
+                        14
+                ) {
 
                     recipientCard
 
@@ -186,7 +317,9 @@ struct AtlasEditView: View {
 
                     filenameCard
                 }
-                .padding(16)
+                .padding(
+                    16
+                )
             }
 
             Divider()
@@ -194,8 +327,10 @@ struct AtlasEditView: View {
             footer
         }
         .frame(
-            minWidth: 520,
-            minHeight: 650
+            minWidth:
+                520,
+            minHeight:
+                650
         )
 
         // MARK: Initial Setup
@@ -203,6 +338,8 @@ struct AtlasEditView: View {
         .onAppear {
 
             prepareSender()
+
+            refreshVisualSenderInfo()
 
             if archiveViewModel
                 .rootNodesByWorkspace
@@ -223,7 +360,9 @@ struct AtlasEditView: View {
                 archiveViewModel
                     .rootNodesByWorkspace
                     .count
-        ) { _, _ in
+        ) {
+            _,
+            _ in
 
             updateAutomaticDestination()
         }
@@ -233,7 +372,9 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 recipientArea
-        ) { _, _ in
+        ) {
+            _,
+            _ in
 
             updateAutomaticDestination()
         }
@@ -243,7 +384,9 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 documentType
-        ) { _, _ in
+        ) {
+            _,
+            _ in
 
             updateAutomaticFilename()
 
@@ -255,7 +398,9 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 hasDate
-        ) { _, _ in
+        ) {
+            _,
+            _ in
 
             updateAutomaticFilename()
         }
@@ -265,10 +410,14 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 detectedDate
-        ) { _, _ in
+        ) {
+            _,
+            _ in
 
-            guard hasDate
+            guard
+                hasDate
             else {
+
                 return
             }
 
@@ -280,7 +429,9 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 selectedSender
-        ) { _, newValue in
+        ) {
+            _,
+            newValue in
 
             if !newValue.isEmpty {
 
@@ -288,7 +439,14 @@ struct AtlasEditView: View {
                     ""
             }
 
+            confirmVisualSender =
+                false
+
             updateAutomaticFilename()
+
+            updateAutomaticDestination()
+
+            refreshVisualSenderInfo()
         }
 
         // MARK: Custom Sender Changed
@@ -296,7 +454,9 @@ struct AtlasEditView: View {
         .onChange(
             of:
                 customSender
-        ) { _, newValue in
+        ) {
+            _,
+            newValue in
 
             let cleaned =
                 newValue
@@ -311,7 +471,14 @@ struct AtlasEditView: View {
                     ""
             }
 
+            confirmVisualSender =
+                false
+
             updateAutomaticFilename()
+
+            updateAutomaticDestination()
+
+            refreshVisualSenderInfo()
         }
 
         // MARK: Destination Picker
@@ -324,29 +491,22 @@ struct AtlasEditView: View {
             ArchiveFolderPickerSheet(
                 title:
                     "Speicherort auswählen",
-
                 subtitle:
                     document.originalFilename,
-
                 actionTitle:
                     "Übernehmen",
-
                 viewModel:
                     archiveViewModel,
-
                 isWorking:
                     false,
-
                 errorMessage:
                     archiveViewModel
                         .errorMessage,
-
                 onCancel: {
 
                     isShowingDestinationPicker =
                         false
                 },
-
                 onSelect: {
                     selectedURL in
 
@@ -365,36 +525,50 @@ struct AtlasEditView: View {
 
     // MARK: - Header
 
-    private var header: some View {
+    private var header:
+        some View {
 
-        HStack(spacing: 12) {
+        HStack(
+            spacing:
+                12
+        ) {
 
             Image(
                 systemName:
                     "pencil.and.list.clipboard"
             )
-            .font(.title2)
+            .font(
+                .title2
+            )
 
             VStack(
-                alignment: .leading,
-                spacing: 3
+                alignment:
+                    .leading,
+                spacing:
+                    3
             ) {
 
                 Text(
                     "Angaben korrigieren"
                 )
                 .font(
-                    .title2.bold()
+                    .title2
+                        .bold()
                 )
 
                 Text(
-                    document.originalFilename
+                    document
+                        .originalFilename
                 )
-                .font(.caption)
+                .font(
+                    .caption
+                )
                 .foregroundStyle(
                     .secondary
                 )
-                .lineLimit(1)
+                .lineLimit(
+                    1
+                )
                 .truncationMode(
                     .middle
                 )
@@ -402,18 +576,23 @@ struct AtlasEditView: View {
 
             Spacer()
         }
-        .padding(18)
+        .padding(
+            18
+        )
     }
 
     // MARK: - Recipient
 
-    private var recipientCard: some View {
+    private var recipientCard:
+        some View {
 
         AtlasCard {
 
             VStack(
-                alignment: .leading,
-                spacing: 10
+                alignment:
+                    .leading,
+                spacing:
+                    10
             ) {
 
                 Label(
@@ -421,7 +600,9 @@ struct AtlasEditView: View {
                     systemImage:
                         "building.2"
                 )
-                .font(.headline)
+                .font(
+                    .headline
+                )
 
                 Picker(
                     "Firma / Empfänger",
@@ -430,13 +611,16 @@ struct AtlasEditView: View {
                 ) {
 
                     ForEach(
-                        ArchiveArea.allCases,
+                        ArchiveArea
+                            .allCases,
                         id:
                             \.self
-                    ) { area in
+                    ) {
+                        area in
 
                         Text(
-                            area.rawValue
+                            area
+                                .rawValue
                         )
                         .tag(
                             area
@@ -449,13 +633,16 @@ struct AtlasEditView: View {
 
     // MARK: - Sender
 
-    private var senderCard: some View {
+    private var senderCard:
+        some View {
 
         AtlasCard {
 
             VStack(
-                alignment: .leading,
-                spacing: 10
+                alignment:
+                    .leading,
+                spacing:
+                    10
             ) {
 
                 Label(
@@ -463,7 +650,9 @@ struct AtlasEditView: View {
                     systemImage:
                         "person.text.rectangle"
                 )
-                .font(.headline)
+                .font(
+                    .headline
+                )
 
                 Picker(
                     "Bekannter Absender",
@@ -474,13 +663,16 @@ struct AtlasEditView: View {
                     Text(
                         "Absender auswählen …"
                     )
-                    .tag("")
+                    .tag(
+                        ""
+                    )
 
                     ForEach(
                         availableCompanies,
                         id:
                             \.self
-                    ) { company in
+                    ) {
+                        company in
 
                         Text(
                             company
@@ -494,7 +686,9 @@ struct AtlasEditView: View {
                 Text(
                     "Oder neuen Absender eintragen"
                 )
-                .font(.caption)
+                .font(
+                    .caption
+                )
                 .foregroundStyle(
                     .secondary
                 )
@@ -508,9 +702,13 @@ struct AtlasEditView: View {
                     .roundedBorder
                 )
 
-                if !cleanedSender.isEmpty {
+                if !cleanedSender
+                    .isEmpty {
 
-                    HStack(spacing: 6) {
+                    HStack(
+                        spacing:
+                            6
+                    ) {
 
                         Image(
                             systemName:
@@ -528,10 +726,130 @@ struct AtlasEditView: View {
                             .semibold
                         )
                     }
-                    .font(.caption)
+                    .font(
+                        .caption
+                    )
                     .foregroundStyle(
                         .secondary
                     )
+                    Divider()
+                        .padding(
+                            .vertical,
+                            2
+                        )
+
+                    VStack(
+                        alignment:
+                            .leading,
+                        spacing:
+                            8
+                    ) {
+
+                        HStack(
+                            spacing:
+                                6
+                        ) {
+
+                            Image(
+                                systemName:
+                                    "viewfinder"
+                            )
+
+                            Text(
+                                "Grafische Erkennung"
+                            )
+                            .fontWeight(
+                                .semibold
+                            )
+
+                            Spacer()
+                        }
+                        .font(
+                            .caption
+                        )
+                        .foregroundStyle(
+                            .secondary
+                        )
+
+                        if let similarity =
+                            visualSimilarityValue {
+
+                            HStack {
+
+                                Text(
+                                    "Ähnlichkeit mit \(cleanedSender)"
+                                )
+
+                                Spacer()
+
+                                Text(
+                                    similarity,
+                                    format:
+                                        .percent
+                                            .precision(
+                                                .fractionLength(
+                                                    1
+                                                )
+                                            )
+                                )
+                                .fontWeight(
+                                    .semibold
+                                )
+                            }
+                            .font(
+                                .callout
+                            )
+
+                            let count =
+                                visualConfirmationCountValue
+
+                            if count > 0 {
+
+                                Text(
+                                    count == 1
+                                    ? "Bisher 1× als \(cleanedSender) bestätigt"
+                                    : "Bisher \(count)× als \(cleanedSender) bestätigt"
+                                )
+                                .font(
+                                    .caption
+                                )
+                                .foregroundStyle(
+                                    .secondary
+                                )
+                            }
+
+                        } else {
+
+                            Text(
+                                "Für \(cleanedSender) ist noch keine vergleichbare gelernte Grafik vorhanden."
+                            )
+                            .font(
+                                .caption
+                            )
+                            .foregroundStyle(
+                                .secondary
+                            )
+                        }
+
+                        Toggle(
+                            "Grafik gehört definitiv zu \(cleanedSender)",
+                            isOn:
+                                $confirmVisualSender
+                        )
+                        .toggleStyle(
+                            .checkbox
+                        )
+
+                        Text(
+                            "Nur aktivieren, wenn Logo, Briefkopf bzw. das grafische Erscheinungsbild sicher zu diesem Absender gehört."
+                        )
+                        .font(
+                            .caption2
+                        )
+                        .foregroundStyle(
+                            .secondary
+                        )
+                    }
                 }
             }
         }
@@ -539,13 +857,16 @@ struct AtlasEditView: View {
 
     // MARK: - Document
 
-    private var documentCard: some View {
+    private var documentCard:
+        some View {
 
         AtlasCard {
 
             VStack(
-                alignment: .leading,
-                spacing: 12
+                alignment:
+                    .leading,
+                spacing:
+                    12
             ) {
 
                 Label(
@@ -553,7 +874,9 @@ struct AtlasEditView: View {
                     systemImage:
                         "doc.text"
                 )
-                .font(.headline)
+                .font(
+                    .headline
+                )
 
                 Picker(
                     "Dokumentenart",
@@ -562,13 +885,16 @@ struct AtlasEditView: View {
                 ) {
 
                     ForEach(
-                        DocumentType.allCases,
+                        DocumentType
+                            .allCases,
                         id:
                             \.self
-                    ) { type in
+                    ) {
+                        type in
 
                         Text(
-                            type.rawValue
+                            type
+                                .rawValue
                         )
                         .tag(
                             type
@@ -598,13 +924,16 @@ struct AtlasEditView: View {
 
     // MARK: - Destination
 
-    private var destinationCard: some View {
+    private var destinationCard:
+        some View {
 
         AtlasCard {
 
             VStack(
-                alignment: .leading,
-                spacing: 10
+                alignment:
+                    .leading,
+                spacing:
+                    10
             ) {
 
                 HStack {
@@ -614,7 +943,9 @@ struct AtlasEditView: View {
                         systemImage:
                             "folder"
                     )
-                    .font(.headline)
+                    .font(
+                        .headline
+                    )
 
                     Spacer()
 
@@ -626,7 +957,9 @@ struct AtlasEditView: View {
                             systemImage:
                                 "wand.and.stars"
                         )
-                        .font(.caption)
+                        .font(
+                            .caption
+                        )
                         .foregroundStyle(
                             .secondary
                         )
@@ -636,14 +969,18 @@ struct AtlasEditView: View {
                 if let destinationURL {
 
                     Text(
-                        destinationURL.path
+                        destinationURL
+                            .path
                     )
                     .font(
-                        .callout.weight(
-                            .semibold
-                        )
+                        .callout
+                            .weight(
+                                .semibold
+                            )
                     )
-                    .lineLimit(3)
+                    .lineLimit(
+                        3
+                    )
                     .truncationMode(
                         .middle
                     )
@@ -654,21 +991,29 @@ struct AtlasEditView: View {
                 } else {
 
                     VStack(
-                        alignment: .leading,
-                        spacing: 4
+                        alignment:
+                            .leading,
+                        spacing:
+                            4
                     ) {
 
                         Text(
                             "Noch kein passender Speicherort gefunden"
                         )
-                        .font(.callout)
+                        .font(
+                            .callout
+                        )
                         .foregroundStyle(
                             .secondary
                         )
 
-                        if archiveViewModel.isLoading {
+                        if archiveViewModel
+                            .isLoading {
 
-                            HStack(spacing: 6) {
+                            HStack(
+                                spacing:
+                                    6
+                            ) {
 
                                 ProgressView()
                                     .controlSize(
@@ -678,7 +1023,9 @@ struct AtlasEditView: View {
                                 Text(
                                     "Archiv wird geprüft …"
                                 )
-                                .font(.caption)
+                                .font(
+                                    .caption
+                                )
                                 .foregroundStyle(
                                     .secondary
                                 )
@@ -714,13 +1061,16 @@ struct AtlasEditView: View {
 
     // MARK: - Filename
 
-    private var filenameCard: some View {
+    private var filenameCard:
+        some View {
 
         AtlasCard {
 
             VStack(
-                alignment: .leading,
-                spacing: 10
+                alignment:
+                    .leading,
+                spacing:
+                    10
             ) {
 
                 HStack {
@@ -730,7 +1080,9 @@ struct AtlasEditView: View {
                         systemImage:
                             "pencil"
                     )
-                    .font(.headline)
+                    .font(
+                        .headline
+                    )
 
                     Spacer()
 
@@ -741,7 +1093,9 @@ struct AtlasEditView: View {
                             systemImage:
                                 "wand.and.stars"
                         )
-                        .font(.caption)
+                        .font(
+                            .caption
+                        )
                         .foregroundStyle(
                             .secondary
                         )
@@ -764,7 +1118,9 @@ struct AtlasEditView: View {
                             ? "Manuell angepasst"
                             : "Wird bei Änderungen automatisch aktualisiert"
                     )
-                    .font(.caption)
+                    .font(
+                        .caption
+                    )
                     .foregroundStyle(
                         .secondary
                     )
@@ -785,7 +1141,9 @@ struct AtlasEditView: View {
                         .buttonStyle(
                             .link
                         )
-                        .font(.caption)
+                        .font(
+                            .caption
+                        )
                     }
                 }
             }
@@ -794,9 +1152,13 @@ struct AtlasEditView: View {
 
     // MARK: - Footer
 
-    private var footer: some View {
+    private var footer:
+        some View {
 
-        HStack(spacing: 12) {
+        HStack(
+            spacing:
+                12
+        ) {
 
             Button(
                 "Abbrechen"
@@ -819,23 +1181,21 @@ struct AtlasEditView: View {
                     AtlasEditValues(
                         recipientArea:
                             recipientArea,
-
                         sender:
                             cleanedSender,
-
                         documentType:
                             documentType,
-
                         detectedDate:
                             hasDate
                             ? detectedDate
                             : nil,
-
                         destinationURL:
                             destinationURL,
-
                         filename:
-                            cleanedFilename
+                            cleanedFilename,
+
+                        confirmVisualSender:
+                            confirmVisualSender
                     )
 
                 onSaveAndArchive(
@@ -846,7 +1206,10 @@ struct AtlasEditView: View {
 
                 if isWorking {
 
-                    HStack(spacing: 6) {
+                    HStack(
+                        spacing:
+                            6
+                    ) {
 
                         ProgressView()
                             .controlSize(
@@ -879,16 +1242,13 @@ struct AtlasEditView: View {
                 isWorking
             )
         }
-        .padding(16)
+        .padding(
+            16
+        )
     }
 
     // MARK: - Filename Binding
 
-    /// Nur Änderungen über das TextField
-    /// gelten als manuelle Bearbeitung.
-    ///
-    /// Programmatische Änderungen von Atlas
-    /// setzen dieses Flag dadurch nicht.
     private var filenameBinding:
         Binding<String> {
 
@@ -1007,21 +1367,13 @@ struct AtlasEditView: View {
             return
         }
 
-        let suggestion =
-            archiveViewModel
-                .suggestDestination(
-                    for:
-                        recipientArea,
-                    documentType:
-                        documentType,
-                    sender:
-                        cleanedSender.isEmpty
-                        ? nil
-                        : cleanedSender
-                )
-
         destinationURL =
-            suggestion
+            suggestArchiveDestination(
+                recipientArea,
+                cleanedSender,
+                documentType,
+                document
+            )
     }
 
     // MARK: - Sender Preparation
@@ -1049,17 +1401,19 @@ struct AtlasEditView: View {
         }
 
         if let matching =
-            availableCompanies.first(
-                where: {
+            availableCompanies
+                .first(
+                    where: {
 
-                    normalize(
-                        $0
-                    ) ==
-                    normalize(
-                        cleanedInitial
-                    )
-                }
-            ) {
+                        normalize(
+                            $0
+                        )
+                        ==
+                        normalize(
+                            cleanedInitial
+                        )
+                    }
+                ) {
 
             selectedSender =
                 matching
@@ -1079,7 +1433,8 @@ struct AtlasEditView: View {
 
     // MARK: - Cleaned Sender
 
-    private var cleanedSender: String {
+    private var cleanedSender:
+        String {
 
         let custom =
             customSender
@@ -1100,9 +1455,52 @@ struct AtlasEditView: View {
             )
     }
 
+    // MARK: - Visual Sender Comparison
+
+    /// Berechnet die visuelle Information nur dann neu,
+    /// wenn der Absender tatsächlich geändert wurde
+    /// bzw. die Ansicht geöffnet wird.
+    ///
+    /// Wichtig:
+    /// SwiftUI wertet den Body bei jedem Toggle-Klick
+    /// erneut aus. Würden wir similarity(to:) dort über
+    /// eine computed property aufrufen, würde der komplette
+    /// Feature-Vektor-Vergleich bei jedem Neuzeichnen erneut
+    /// stattfinden und könnte die Hauptoberfläche blockieren.
+    private func refreshVisualSenderInfo() {
+
+        let sender =
+            cleanedSender
+
+        guard
+            !sender.isEmpty
+        else {
+
+            visualSimilarityValue =
+                nil
+
+            visualConfirmationCountValue =
+                0
+
+            return
+        }
+
+        visualSimilarityValue =
+            visualSimilarity(
+                sender,
+                document
+            )
+
+        visualConfirmationCountValue =
+            visualConfirmationCount(
+                sender
+            )
+    }
+
     // MARK: - Cleaned Filename
 
-    private var cleanedFilename: String {
+    private var cleanedFilename:
+        String {
 
         var value =
             filename
@@ -1134,7 +1532,8 @@ struct AtlasEditView: View {
 
     // MARK: - Validation
 
-    private var canSave: Bool {
+    private var canSave:
+        Bool {
 
         !cleanedSender.isEmpty
         &&
@@ -1149,7 +1548,8 @@ struct AtlasEditView: View {
     // MARK: - Normalize
 
     private func normalize(
-        _ value: String
+        _ value:
+            String
     ) -> String {
 
         value
@@ -1176,7 +1576,8 @@ struct AtlasEditView: View {
 
 #Preview {
 
-    @Previewable @State
+    @Previewable
+    @State
     var destinationURL:
         URL?
 
@@ -1189,40 +1590,49 @@ struct AtlasEditView: View {
                             "/tmp/Scan_4711.pdf"
                     )
             ),
-
         availableCompanies: [
             "MeyVa",
             "RAISA",
             "RWG",
             "Team Agrar"
         ],
-
         initialRecipientArea:
             .business,
-
         initialSender:
             "MeyVa",
-
         initialDocumentType:
             .deliveryNote,
-
         initialDate:
             Date(),
-
         destinationURL:
             $destinationURL,
-
         initialFilename:
             "2026-08-11 Lieferschein MeyVa",
-
         archiveViewModel:
             ArchiveViewModel(),
+        suggestArchiveDestination: {
+            _,
+            _,
+            _,
+            _ in
 
+            nil
+        },
+        visualSimilarity: {
+            _,
+            _ in
+
+            0.972
+        },
+        visualConfirmationCount: {
+            _ in
+
+            2
+        },
         isWorking:
             false,
-
-        onCancel: {},
-
+        onCancel:
+            {},
         onSaveAndArchive: {
             _ in
         }

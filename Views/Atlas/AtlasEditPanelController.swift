@@ -24,8 +24,31 @@ final class AtlasEditPanelController {
         destinationURL: Binding<URL?>,
         initialFilename: String,
         archiveViewModel: ArchiveViewModel,
+
+        suggestArchiveDestination:
+            @escaping (
+                ArchiveArea,
+                String,
+                DocumentType,
+                DocumentRecord
+            ) -> URL?,
+
+        visualSimilarity:
+            @escaping (
+                String,
+                DocumentRecord
+            ) -> Double?,
+
+        visualConfirmationCount:
+            @escaping (
+                String
+            ) -> Int,
+
         isWorking: Bool,
-        onSaveAndArchive: @escaping (AtlasEditValues) -> Void
+        onSaveAndArchive:
+            @escaping (
+                AtlasEditValues
+            ) -> Void
     ) {
 
         close()
@@ -59,6 +82,15 @@ final class AtlasEditPanelController {
                 archiveViewModel:
                     archiveViewModel,
 
+                suggestArchiveDestination:
+                    suggestArchiveDestination,
+
+                visualSimilarity:
+                    visualSimilarity,
+
+                visualConfirmationCount:
+                    visualConfirmationCount,
+
                 isWorking:
                     isWorking,
 
@@ -87,10 +119,14 @@ final class AtlasEditPanelController {
             NSPanel(
                 contentRect:
                     NSRect(
-                        x: 0,
-                        y: 0,
-                        width: 620,
-                        height: 760
+                        x:
+                            0,
+                        y:
+                            0,
+                        width:
+                            620,
+                        height:
+                            760
                     ),
 
                 styleMask: [
@@ -132,8 +168,10 @@ final class AtlasEditPanelController {
 
         newPanel.minSize =
             NSSize(
-                width: 520,
-                height: 650
+                width:
+                    520,
+                height:
+                    650
             )
 
         // MARK: - Remember Position + Size
@@ -169,7 +207,8 @@ final class AtlasEditPanelController {
 
     func close() {
 
-        guard let panel
+        guard
+            let panel
         else {
 
             return
@@ -188,11 +227,13 @@ final class AtlasEditPanelController {
     // MARK: - Initial Position
 
     private func positionInitially(
-        _ panel: NSPanel
+        _ panel:
+            NSPanel
     ) {
 
-        guard let screen =
-            NSScreen.main
+        guard
+            let screen =
+                NSScreen.main
         else {
 
             panel.center()
@@ -220,8 +261,10 @@ final class AtlasEditPanelController {
 
         panel.setFrameOrigin(
             NSPoint(
-                x: x,
-                y: y
+                x:
+                    x,
+                y:
+                    y
             )
         )
     }
@@ -233,12 +276,13 @@ final class AtlasEditPanelController {
         let key =
             "NSWindow Frame AtlasEditPanel"
 
-        guard let stored =
-            UserDefaults.standard
-                .string(
-                    forKey:
-                        key
-                )
+        guard
+            let stored =
+                UserDefaults.standard
+                    .string(
+                        forKey:
+                            key
+                    )
         else {
 
             return false
