@@ -32,7 +32,8 @@ final class VisualSenderLearningManager {
 
     func confirm(
         company: String,
-        signature: VisualFeatureSignature
+        signature: VisualFeatureSignature,
+        previewPNGData: Data? = nil
     ) {
 
         let cleanedCompany =
@@ -74,6 +75,25 @@ final class VisualSenderLearningManager {
                 ]
                 .confirm()
 
+                if let previewPNGData,
+                   let filename =
+                    store.savePreview(
+                        pngData:
+                            previewPNGData,
+                        for:
+                            entries[
+                                match.index
+                            ]
+                            .id
+                    ) {
+
+                    entries[
+                        match.index
+                    ]
+                    .previewFilename =
+                        filename
+                }
+
                 save()
 
                 return
@@ -85,19 +105,40 @@ final class VisualSenderLearningManager {
             //
             // Alte Zuordnung verwerfen und
             // Vertrauen neu aufbauen.
+            store.removePreview(
+                filename:
+                    entries[
+                        match.index
+                    ]
+                    .previewFilename
+            )
+
             entries.remove(
                 at:
                     match.index
             )
         }
 
-        let newEntry =
+        var newEntry =
             VisualSenderLearningEntry(
                 company:
                     cleanedCompany,
                 signature:
                     signature
             )
+
+        if let previewPNGData,
+           let filename =
+            store.savePreview(
+                pngData:
+                    previewPNGData,
+                for:
+                    newEntry.id
+            ) {
+
+            newEntry.previewFilename =
+                filename
+        }
 
         entries.append(
             newEntry
@@ -229,12 +270,80 @@ final class VisualSenderLearningManager {
             VisualSenderLearningEntry
     ) {
 
+        store.removePreview(
+            filename:
+                entry.previewFilename
+        )
+
         entries.removeAll {
             $0.id ==
                 entry.id
         }
 
         save()
+    }
+
+    // MARK: - Reassign
+
+    /// Ordnet eine bereits gelernte visuelle Signatur
+    /// einer anderen Firma zu.
+    ///
+    /// Signatur und Bestätigungszahl bleiben erhalten.
+    @discardableResult
+    func reassign(
+        _ entry:
+            VisualSenderLearningEntry,
+        to company:
+            String
+    ) -> Bool {
+
+        let cleanedCompany =
+            company.trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+
+        guard
+            !cleanedCompany.isEmpty,
+            let index =
+                entries.firstIndex(
+                    where: {
+                        $0.id ==
+                            entry.id
+                    }
+                )
+        else {
+
+            return false
+        }
+
+        let currentEntry =
+            entries[index]
+
+        let reassignedEntry =
+            VisualSenderLearningEntry(
+                id:
+                    currentEntry.id,
+                company:
+                    cleanedCompany,
+                signature:
+                    currentEntry.signature,
+                previewFilename:
+                    currentEntry.previewFilename,
+                createdAt:
+                    currentEntry.createdAt,
+                lastConfirmedAt:
+                    currentEntry.lastConfirmedAt,
+                confirmationCount:
+                    currentEntry.confirmationCount
+            )
+
+        entries[index] =
+            reassignedEntry
+
+        save()
+
+        return true
     }
 
     // MARK: - Clear

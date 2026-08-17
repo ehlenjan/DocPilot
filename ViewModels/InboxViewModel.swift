@@ -1637,12 +1637,21 @@ final class InboxViewModel {
         visualSenderLearningManager
             .reload()
 
+        let previewPNGData =
+            senderVisualRecognizer
+                .previewPNGData(
+                    for:
+                        document.sourceURL
+                )
+
         visualSenderLearningManager
             .confirm(
                 company:
                     cleanedCompany,
                 signature:
-                    signature
+                    signature,
+                previewPNGData:
+                    previewPNGData
             )
 
         let match =
@@ -2341,12 +2350,21 @@ final class InboxViewModel {
                         document.sourceURL
                     ] {
 
+                    let previewPNGData =
+                        senderVisualRecognizer
+                            .previewPNGData(
+                                for:
+                                    document.sourceURL
+                            )
+
                     visualSenderLearningManager
                         .confirm(
                             company:
                                 cleanedSender,
                             signature:
-                                signature
+                                signature,
+                            previewPNGData:
+                                previewPNGData
                         )
                 }
             }

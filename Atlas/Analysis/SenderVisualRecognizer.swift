@@ -226,6 +226,44 @@ struct SenderVisualRecognizer {
         }
     }
 
+    // MARK: - Preview PNG
+
+    /// Liefert denselben oberen 30-%-Ausschnitt der
+    /// ersten PDF-Seite als kompaktes PNG, den Atlas
+    /// auch für die visuelle Signatur verwendet.
+    ///
+    /// Dadurch zeigt die spätere Lernverwaltung genau
+    /// den Bildbereich, den Atlas tatsächlich vergleicht.
+    func previewPNGData(
+        for pdfURL: URL
+    ) -> Data? {
+
+        guard
+            let headerImage =
+                firstPageHeaderImage(
+                    from:
+                        pdfURL
+                )
+        else {
+
+            return nil
+        }
+
+        let bitmap =
+            NSBitmapImageRep(
+                cgImage:
+                    headerImage
+            )
+
+        return bitmap
+            .representation(
+                using:
+                    .png,
+                properties:
+                    [:]
+            )
+    }
+
     // MARK: - First Page Header
 
     private func firstPageHeaderImage(
@@ -256,6 +294,17 @@ struct SenderVisualRecognizer {
 
     // MARK: - Render Header
 
+    /// Rendert die erste PDF-Seite über PDFKit selbst.
+    ///
+    /// Dadurch werden Seitenrotation, CropBox und die
+    /// tatsächliche sichtbare Seitenausrichtung korrekt
+    /// berücksichtigt. Erst danach schneiden wir die
+    /// oberen 30 % des sichtbaren Seitenbilds aus.
+    ///
+    /// Wichtig:
+    /// Genau dieser Ausschnitt wird sowohl für die
+    /// visuelle Signatur als auch für die Vorschau
+    /// verwendet.
     private func renderFirstPageHeader(
         page: PDFPage
     ) -> CGImage? {
@@ -263,7 +312,7 @@ struct SenderVisualRecognizer {
         let pageBounds =
             page.bounds(
                 for:
-                    .mediaBox
+                    .cropBox
             )
 
         guard
@@ -277,132 +326,78 @@ struct SenderVisualRecognizer {
         let targetWidth:
             CGFloat = 1800
 
-        let scale =
-            targetWidth /
+        let aspectRatio =
+            pageBounds.height /
             pageBounds.width
 
-        let fullWidth =
-            pageBounds.width *
-            scale
-
-        let fullHeight =
-            pageBounds.height *
-            scale
-
-        guard
-            let colorSpace =
-                CGColorSpace(
-                    name:
-                        CGColorSpace.sRGB
-                )
-        else {
-
-            return nil
-        }
-
-        guard
-            let context =
-                CGContext(
-                    data:
-                        nil,
-                    width:
-                        Int(
-                            fullWidth
-                        ),
-                    height:
-                        Int(
-                            fullHeight
-                        ),
-                    bitsPerComponent:
-                        8,
-                    bytesPerRow:
-                        0,
-                    space:
-                        colorSpace,
-                    bitmapInfo:
-                        CGImageAlphaInfo
-                            .premultipliedLast
-                            .rawValue
-                )
-        else {
-
-            return nil
-        }
-
-        context.setFillColor(
-            NSColor.white.cgColor
-        )
-
-        context.fill(
-            CGRect(
-                x:
-                    0,
-                y:
-                    0,
+        let targetSize =
+            NSSize(
                 width:
-                    fullWidth,
+                    targetWidth,
                 height:
-                    fullHeight
+                    targetWidth *
+                    aspectRatio
             )
-        )
 
-        context.saveGState()
-
-        context.scaleBy(
-            x:
-                scale,
-            y:
-                scale
-        )
-
-        page.draw(
-            with:
-                .mediaBox,
-            to:
-                context
-        )
-
-        context.restoreGState()
+        // PDFKit rendert die Seite korrekt orientiert
+        // und berücksichtigt Rotation/CropBox.
+        let thumbnail =
+            page.thumbnail(
+                of:
+                    targetSize,
+                for:
+                    .cropBox
+            )
 
         guard
+            let tiffData =
+                thumbnail.tiffRepresentation,
+            let bitmap =
+                NSBitmapImageRep(
+                    data:
+                        tiffData
+                ),
             let fullImage =
-                context.makeImage()
+                bitmap.cgImage
         else {
 
             return nil
         }
 
-        let headerRatio =
-            0.30
+        let headerRatio:
+            CGFloat = 0.30
 
         let headerHeight =
             max(
                 1,
                 Int(
-                    Double(
+                    CGFloat(
                         fullImage.height
                     ) *
                     headerRatio
                 )
             )
 
+        // Bei CGImage liegt der Ursprung links oben
+        // für das Cropping. Deshalb beginnt der
+        // sichtbare Kopfbereich bei y = 0.
         let cropRect =
             CGRect(
                 x:
                     0,
                 y:
-                    fullImage.height -
-                    headerHeight,
+                    0,
                 width:
                     fullImage.width,
                 height:
                     headerHeight
             )
 
-        return fullImage.cropping(
-            to:
-                cropRect
-        )
+        return fullImage
+            .cropping(
+                to:
+                    cropRect
+            )
     }
 
     // MARK: - Vision OCR With Positions

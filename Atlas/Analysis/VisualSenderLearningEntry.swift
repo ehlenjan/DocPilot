@@ -15,6 +15,13 @@ struct VisualSenderLearningEntry: Codable, Identifiable {
     /// ähnlichen Dokumentköpfen verglichen werden.
     let signature: VisualFeatureSignature
 
+    /// Optionaler Dateiname des gespeicherten
+    /// Vorschaubilds des Dokumentkopfs.
+    ///
+    /// Alte Lerneinträge besitzen noch keine Vorschau
+    /// und bleiben deshalb vollständig kompatibel.
+    var previewFilename: String?
+
     /// Wann diese Zuordnung erstmals
     /// gelernt wurde.
     let createdAt: Date
@@ -30,6 +37,7 @@ struct VisualSenderLearningEntry: Codable, Identifiable {
         id: UUID = UUID(),
         company: String,
         signature: VisualFeatureSignature,
+        previewFilename: String? = nil,
         createdAt: Date = Date(),
         lastConfirmedAt: Date = Date(),
         confirmationCount: Int = 1
@@ -43,6 +51,9 @@ struct VisualSenderLearningEntry: Codable, Identifiable {
 
         self.signature =
             signature
+
+        self.previewFilename =
+            previewFilename
 
         self.createdAt =
             createdAt

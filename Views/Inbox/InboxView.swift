@@ -33,13 +33,13 @@ struct InboxView: View {
     /// Wird dauerhaft in UserDefaults gespeichert.
     /// Dadurch bleiben die Spaltenbreiten auch nach
     /// einem Programmneustart erhalten.
-    @AppStorage("docpilot.inbox.leftPaneWidth")
+    @AppStorage("docpilot.inbox.leftPaneWidth.v3")
     private var leftPaneWidth:
-        Double = 220
+        Double = 300
 
-    @AppStorage("docpilot.inbox.rightPaneWidth")
+    @AppStorage("docpilot.inbox.rightPaneWidth.v3")
     private var rightPaneWidth:
-        Double = 400
+        Double = 340
 
     /// Startwerte während eines laufenden Ziehvorgangs.
     @State private var leftDragStartWidth:
@@ -632,7 +632,7 @@ struct InboxView: View {
                             min(
                                 max(
                                     proposed,
-                                    180
+                                    240
                                 ),
                                 420
                             )
@@ -736,7 +736,7 @@ struct InboxView: View {
             min(
                 max(
                     leftPaneWidth,
-                    180
+                    240
                 ),
                 420
             )
@@ -756,7 +756,7 @@ struct InboxView: View {
             Double = 16
 
         let minimumPDFWidth:
-            Double = 420
+            Double = 360
 
         let availableForSides =
             max(
@@ -795,7 +795,7 @@ struct InboxView: View {
             max(
                 0,
                 leftPaneWidth -
-                180
+                240
             )
 
         let leftReduction =
