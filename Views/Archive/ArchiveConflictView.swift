@@ -280,6 +280,9 @@ struct ArchiveConflictView: View {
                 .buttonStyle(
                     .borderedProminent
                 )
+                .keyboardShortcut(
+                    .defaultAction
+                )
             }
         }
         .padding(
