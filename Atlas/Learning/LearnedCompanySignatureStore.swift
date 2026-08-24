@@ -736,7 +736,229 @@ struct LearnedCompanySignatureStore {
 
         return score
     }
+    // MARK: - Learning Management
 
+    /// Liefert alle gelernten Firmenzuordnungen
+    /// alphabetisch nach Firmenname sortiert.
+    func allSignatures() -> [LearnedCompanySignature] {
+
+        load()
+            .sorted {
+                $0.company.localizedStandardCompare(
+                    $1.company
+                ) == .orderedAscending
+            }
+    }
+
+
+    /// Löscht ein einzelnes gelerntes Textmerkmal
+    /// einer Firma.
+    @discardableResult
+    func removeSignal(
+        _ signal: String,
+        from signatureID: UUID
+    ) -> Bool {
+
+        var signatures =
+            load()
+
+        guard
+            let signatureIndex =
+                signatures.firstIndex(
+                    where: {
+                        $0.id == signatureID
+                    }
+                )
+        else {
+
+            return false
+        }
+
+        guard
+            signatures[signatureIndex]
+                .signals
+                .removeValue(
+                    forKey: signal
+                ) != nil
+        else {
+
+            return false
+        }
+
+        save(
+            signatures
+        )
+
+        return true
+    }
+
+
+    /// Komfortfunktion:
+    /// Löscht ein Textmerkmal anhand des Firmennamens.
+    @discardableResult
+    func removeSignal(
+        _ signal: String,
+        fromCompany company: String
+    ) -> Bool {
+
+        let cleanedCompany =
+            company
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        guard
+            !cleanedCompany.isEmpty
+        else {
+
+            return false
+        }
+
+        var signatures =
+            load()
+
+        guard
+            let signatureIndex =
+                signatures.firstIndex(
+                    where: {
+                        normalize(
+                            $0.company
+                        )
+                        ==
+                        normalize(
+                            cleanedCompany
+                        )
+                    }
+                )
+        else {
+
+            return false
+        }
+
+        guard
+            signatures[signatureIndex]
+                .signals
+                .removeValue(
+                    forKey: signal
+                ) != nil
+        else {
+
+            return false
+        }
+
+        save(
+            signatures
+        )
+
+        return true
+    }
+
+
+    /// Löscht die komplette gelernte Textzuordnung
+    /// einer Firma.
+    ///
+    /// Die visuell gelernten Grafiken werden dadurch
+    /// NICHT gelöscht.
+    @discardableResult
+    func removeSignature(
+        id: UUID
+    ) -> Bool {
+
+        var signatures =
+            load()
+
+        let oldCount =
+            signatures.count
+
+        signatures.removeAll {
+            $0.id == id
+        }
+
+        guard
+            signatures.count != oldCount
+        else {
+
+            return false
+        }
+
+        save(
+            signatures
+        )
+
+        return true
+    }
+
+
+    /// Komfortfunktion:
+    /// Löscht die komplette Textzuordnung anhand
+    /// des Firmennamens.
+    @discardableResult
+    func removeSignature(
+        company: String
+    ) -> Bool {
+
+        let cleanedCompany =
+            company
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        guard
+            !cleanedCompany.isEmpty
+        else {
+
+            return false
+        }
+
+        var signatures =
+            load()
+
+        let oldCount =
+            signatures.count
+
+        signatures.removeAll {
+
+            normalize(
+                $0.company
+            )
+            ==
+            normalize(
+                cleanedCompany
+            )
+        }
+
+        guard
+            signatures.count != oldCount
+        else {
+
+            return false
+        }
+
+        save(
+            signatures
+        )
+
+        return true
+    }
+
+
+    /// Anzahl aller aktuell gelernten
+    /// Textmerkmale.
+    func signalCount() -> Int {
+
+        load()
+            .reduce(
+                0
+            ) {
+                result,
+                signature in
+
+                result +
+                    signature.signals.count
+            }
+    }
     // MARK: - Store URL
 
     private var storeURL:

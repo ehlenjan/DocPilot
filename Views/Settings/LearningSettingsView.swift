@@ -35,6 +35,18 @@ struct LearningSettingsView: View {
     private let learnedCompanyStore =
         LearnedCompanyStore()
 
+    private let learnedCompanySignatureStore =
+        LearnedCompanySignatureStore()
+
+    @State private var learnedCompanySignatures:
+        [LearnedCompanySignature] = []
+
+    @State private var showLearnedTextSignals =
+        false
+
+    @State private var expandedTextSignalCompanies:
+        Set<UUID> = []
+
     @State private var learningRecords:
         [AtlasLearningRecord] = []
 
@@ -316,6 +328,87 @@ struct LearningSettingsView: View {
                 }
             }
 
+            // MARK: - Gelernte Textmerkmale
+
+            Section {
+                DisclosureGroup(isExpanded: $showLearnedTextSignals) {
+                    if learnedCompanySignatures.isEmpty {
+                        Text("Noch keine Textmerkmale gelernt")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(learnedCompanySignatures) { signature in
+                            DisclosureGroup(
+                                isExpanded: textSignalCompanyBinding(for: signature.id)
+                            ) {
+                                VStack(spacing: 0) {
+                                    ForEach(sortedSignals(for: signature), id: \.signal) { item in
+                                        HStack(spacing: 12) {
+                                            Text(item.signal)
+                                                .textSelection(.enabled)
+                                            Spacer()
+                                            Text("\(item.count)×")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            Button(role: .destructive) {
+                                                _ = learnedCompanySignatureStore.removeSignal(
+                                                    item.signal,
+                                                    from: signature.id
+                                                )
+                                                reloadTextSignals()
+                                            } label: {
+                                                Image(systemName: "trash")
+                                            }
+                                            .buttonStyle(.borderless)
+                                            .help("Textmerkmal löschen")
+                                        }
+                                        .padding(.vertical, 6)
+                                        Divider()
+                                    }
+
+                                    HStack {
+                                        Text("Zuletzt verwendet: \(signature.lastUsed.formatted(date: .abbreviated, time: .omitted))")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        Button("Gesamte Textzuordnung löschen", role: .destructive) {
+                                            _ = learnedCompanySignatureStore.removeSignature(id: signature.id)
+                                            reloadTextSignals()
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                    .padding(.top, 6)
+                                }
+                                .padding(.leading, 22)
+                            } label: {
+                                HStack {
+                                    Text(signature.company)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Text("\(signature.signals.count) Merkmale · \(signature.confirmationCount)× bestätigt")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 3)
+                        }
+
+                        Text("Falsche oder zu allgemeine Textmerkmale können hier einzeln entfernt werden.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 6)
+                    }
+                } label: {
+                    HStack {
+                        Label("Gelernte Textmerkmale", systemImage: "text.magnifyingglass")
+                        Spacer()
+                        Text("\(learnedCompanySignatureStore.signalCount()) · \(learnedCompanySignatures.count) Firmen")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.headline)
+                }
+            }
+
             // MARK: - Gelernte Grafiken
 
             Section {
@@ -525,6 +618,17 @@ struct LearningSettingsView: View {
                         .entries
                         .isEmpty
                 )
+
+                Button(
+                    "Alle gelernten Textmerkmale löschen",
+                    role: .destructive
+                ) {
+                    for signature in learnedCompanySignatures {
+                        _ = learnedCompanySignatureStore.removeSignature(id: signature.id)
+                    }
+                    reloadTextSignals()
+                }
+                .disabled(learnedCompanySignatures.isEmpty)
             }
         }
         .formStyle(
@@ -564,6 +668,47 @@ struct LearningSettingsView: View {
                 entry
             )
         }
+    }
+
+    // MARK: - Learned Text Signals
+
+    private struct LearnedTextSignalItem {
+        let signal: String
+        let count: Int
+    }
+
+    private func sortedSignals(
+        for signature: LearnedCompanySignature
+    ) -> [LearnedTextSignalItem] {
+        signature.signals
+            .map { LearnedTextSignalItem(signal: $0.key, count: $0.value) }
+            .sorted {
+                if $0.count != $1.count {
+                    return $0.count > $1.count
+                }
+                return $0.signal.localizedStandardCompare($1.signal) == .orderedAscending
+            }
+    }
+
+    private func textSignalCompanyBinding(
+        for id: UUID
+    ) -> Binding<Bool> {
+        Binding(
+            get: { expandedTextSignalCompanies.contains(id) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedTextSignalCompanies.insert(id)
+                } else {
+                    expandedTextSignalCompanies.remove(id)
+                }
+            }
+        )
+    }
+
+    private func reloadTextSignals() {
+        learnedCompanySignatures = learnedCompanySignatureStore.allSignatures()
+        let validIDs = Set(learnedCompanySignatures.map(\.id))
+        expandedTextSignalCompanies = expandedTextSignalCompanies.intersection(validIDs)
     }
 
     // MARK: - Visual Graphics Groups
@@ -1315,6 +1460,8 @@ struct LearningSettingsView: View {
 
         visualLearningManager
             .reload()
+
+        reloadTextSignals()
 
         learningRecords =
             learningStore.load()
